@@ -1,0 +1,39 @@
+PROJECT(mbew)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+
+SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")
+
+SET(MBEW_SRC_FILES
+	"src/mbew.c"
+	"src/mbew-format.c"
+	"src/mbew-io.c"
+	"src/mbew-iterate.c"
+)
+
+SET(MBEW_PUBLIC_HEADER_FILES
+	"src/mbew.h"
+)
+
+SET(MBEW_PRIVATE_HEADER_FILES
+	"src/mbew-private.h"
+)
+
+SET(MBEW_HEADER_FILES
+	${MBEW_PUBLIC_HEADER_FILES}
+	${MBEW_PRIVATE_HEADER_FILES}
+)
+
+SET(MBEW_LIBRARY_TYPE STATIC)
+
+INCLUDE_DIRECTORIES(src)
+
+SOURCE_GROUP("Header Files" FILES ${MBEW_HEADER_FILES})
+SOURCE_GROUP("Source Files" FILES ${MBEW_SRC_FILES})
+
+ADD_LIBRARY(mbew ${MBEW_LIBRARY_TYPE} ${MBEW_HEADER_FILES} ${MBEW_SRC_FILES})
+
+ADD_EXECUTABLE(mbew-properties "examples/mbew-properties.c")
+
+TARGET_LINK_LIBRARIES(mbew-properties mbew)
+

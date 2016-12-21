@@ -1,0 +1,9 @@
+-Isrc
+-Iext/libvpx
+-Iext/nestegg/include
+-I/usr/include/cairo
+-W
+-Wall
+-Werror
+-Wno-unused-parameter
+

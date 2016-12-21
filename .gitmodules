@@ -1,0 +1,6 @@
+[submodule "ext/nestegg"]
+	path = ext/nestegg
+	url = https://github.com/kinetiknz/nestegg.git
+[submodule "ext/libvpx"]
+	path = ext/libvpx
+	url = https://chromium.googlesource.com/webm/libvpx
