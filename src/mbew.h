@@ -153,22 +153,15 @@ typedef enum _mbew_type_t {
 	MBEW_TYPE_STATUS,
 	MBEW_TYPE_BOOL,
 	MBEW_TYPE_PROP,
-	MBEW_TYPE_ITER
+	MBEW_TYPE_DATA
 } mbew_type_t;
 
 MBEW_API const char* mbew_string(mbew_type_t type, ...);
 
-typedef enum _mbew_iter_t {
-	MBEW_ITER_VIDEO,
-	MBEW_ITER_AUDIO
-} mbew_iter_t;
-
-typedef void (*mbew_iter_cb_t)(
-	mbew_iter_t type,
-	mbew_num_t index,
-	mbew_ns_t tstamp,
-	void* data
-);
+typedef enum _mbew_data_t {
+	MBEW_DATA_VIDEO,
+	MBEW_DATA_AUDIO
+} mbew_data_t;
 
 typedef struct _mbew_data_video_t {
 	void* data;
@@ -180,7 +173,16 @@ typedef struct _mbew_data_audio_t {
 	void* data;
 } mbew_data_audio_t;
 
-MBEW_API void mbew_iterate(mbew_t* mbew, mbew_iter_cb_t cb);
+typedef struct _mbew_iter_t mbew_iter_t;
+
+MBEW_API mbew_iter_t* mbew_iterate(mbew_t* mbew, mbew_iter_t* iter);
+
+MBEW_API mbew_num_t mbew_iter_index(mbew_iter_t* iter);
+MBEW_API mbew_ns_t mbew_iter_timestamp(mbew_iter_t* iter);
+MBEW_API mbew_data_t mbew_iter_type(mbew_iter_t* iter);
+MBEW_API mbew_data_video_t* mbew_iter_video(mbew_iter_t* iter);
+MBEW_API mbew_data_audio_t* mbew_iter_audio(mbew_iter_t* iter);
+MBEW_API void mbew_iter_destroy(mbew_iter_t* iter);
 
 MBEW_API_END
 

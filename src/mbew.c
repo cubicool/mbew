@@ -191,22 +191,22 @@ static const char* STRINGS[] = {
 	"MBEW_TRUE",
 
 	/* Offset: 36 */
-	"MBEW_ITER_VIDEO",
-	"MBEW_ITER_AUDIO"
+	"MBEW_DATA_VIDEO",
+	"MBEW_DATA_AUDIO"
 };
 
 #define OFFSET_SRC 0
 #define OFFSET_STATUS 2
 #define OFFSET_PROP 22
 #define OFFSET_BOOL 34
-#define OFFSET_ITER 36
+#define OFFSET_DATA 36
 #define OFFSET_MAX 38
 
 #define VAL_SRC 2
 #define VAL_STATUS 20
 #define VAL_PROP 12
 #define VAL_BOOL 2
-#define VAL_ITER 2
+#define VAL_DATA 2
 
 #define CASE_TYPE(ty) case MBEW_TYPE_##ty: if(val < VAL_##ty) { offset = OFFSET_##ty; } break
 
@@ -225,7 +225,7 @@ const char* mbew_string(mbew_type_t type, ...) {
 		CASE_TYPE(STATUS);
 		CASE_TYPE(PROP);
 		CASE_TYPE(BOOL);
-		CASE_TYPE(ITER);
+		CASE_TYPE(DATA);
 
 		default:
 			break;

@@ -50,6 +50,16 @@ struct _mbew_t {
 	nestegg_io ne_io;
 };
 
+struct _mbew_iter_t {
+	nestegg_packet* packet;
+
+	mbew_num_t index;
+	mbew_ns_t timestamp;
+	mbew_data_t type;
+	mbew_data_video_t video;
+	mbew_data_audio_t audio;
+};
+
 mbew_bool_t mbew_create_src_file(mbew_t* mbew, void* data);
 mbew_bool_t mbew_create_src_memory(mbew_t* mbew, void* data);
 

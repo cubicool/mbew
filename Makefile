@@ -14,7 +14,6 @@ STATIC_LIBS = \
 	ext/nestegg/libnestegg.a
 
 DYNAMIC_LIBS = \
-	-lcairo \
 	-lpthread \
 	-lm
 
@@ -38,10 +37,8 @@ mbew-strings: $(SOURCES) $(STATIC_LIBS) $(EXAMPLE03)
 	@gcc -o $(@) $(SOURCES) $(CFLAGS) $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXAMPLE03)
 
 mbew-video-cairo: $(SOURCES) $(STATIC_LIBS) $(EXAMPLE04)
-	@gcc -o $(@) $(SOURCES) $(CFLAGS) $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXAMPLE04)
+	@gcc -o $(@) $(SOURCES) $(CFLAGS) $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXAMPLE04) -lcairo
 
 clean:
-	@rm -f mbew-properties
-	@rm -f mbew-video-cairo
-	@rm -f output.png
+	@rm -f mbew-*
 

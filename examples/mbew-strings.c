@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 
 	printf("BOOL.TRUE: %s\n", mbew_string(MBEW_TYPE_BOOL, MBEW_TRUE));
 
-	printf("ITER.AUDIO: %s\n", mbew_string(MBEW_TYPE_ITER, MBEW_ITER_AUDIO));
+	printf("ITER.AUDIO: %s\n", mbew_string(MBEW_TYPE_DATA, MBEW_DATA_AUDIO));
 
 	return 0;
 }

@@ -3,48 +3,54 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define MBEW_RETURN(st) { mbew->status = MBEW_STATUS_##st; nestegg_free_packet(packet); return; }
+#define MBEW_RETURN(st) { \
+	mbew->status = MBEW_STATUS_##st; \
+	nestegg_free_packet(iter->packet); \
+	mbew_iter_destroy(iter); \
+	return NULL; \
+}
 
-/* TODO: Make sure we start from the beginning somehow. */
-void mbew_iterate(mbew_t* mbew, mbew_iter_cb_t callback) {
-	nestegg_packet* packet = NULL;
-	mbew_num_t index = 0;
+mbew_iter_t* mbew_iterate(mbew_t* mbew, mbew_iter_t* iter) {
+	/* If iter is NULL, this is the first time iterate has been called. */
+	if(!iter) {
+		iter = (mbew_iter_t*)(calloc(1, sizeof(mbew_iter_t)));
 
-	unsigned char* video_buffer = NULL;
+		if(mbew->video.track.init) {
+			iter->video.data = (unsigned char*)(malloc(
+				mbew->video.params.width *
+				mbew->video.params.height *
+				4
+			));
 
-	if(mbew->video.track.init) video_buffer = (unsigned char*)(malloc(
-		mbew->video.params.width *
-		mbew->video.params.height *
-		4
-	));
+			iter->video.width = mbew->video.params.width;
+			iter->video.height = mbew->video.params.height;
+		}
+	}
 
-	while(nestegg_read_packet(mbew->ne, &packet) > 0) {
+	if(nestegg_read_packet(mbew->ne, &iter->packet) > 0) {
 		mbew_num_t track = 0;
 		mbew_num_t count = 0;
-		mbew_ns_t tstamp = 0;
 		mbew_ns_t duration = 0;
 
 		int type;
 
-		if(nestegg_packet_track(packet, &track)) MBEW_RETURN(PACKET_TRACK);
-		if(nestegg_packet_count(packet, &count)) MBEW_RETURN(PACKET_COUNT);
-		if(nestegg_packet_tstamp(packet, &tstamp)) MBEW_RETURN(PACKET_TSTAMP);
+		if(nestegg_packet_track(iter->packet, &track)) MBEW_RETURN(PACKET_TRACK);
+		if(nestegg_packet_count(iter->packet, &count)) MBEW_RETURN(PACKET_COUNT);
+		if(nestegg_packet_tstamp(iter->packet, &iter->timestamp)) MBEW_RETURN(PACKET_TSTAMP);
 
 		/* TODO: Why does the following code ALWAYS fail?
 		if(nestegg_packet_duration(packet.ne, &packet.duration)) MBEW_RETURN(PACKET_DURATION); */
 
-		nestegg_packet_duration(packet, &duration);
+		nestegg_packet_duration(iter->packet, &duration);
 
 		type = nestegg_track_type(mbew->ne, track);
 
 		if(type == NESTEGG_TRACK_VIDEO) {
-			mbew_data_video_t video_data;
-
 			unsigned char* data = NULL;
 			size_t length;
 
 			vpx_codec_stream_info_t info;
-			vpx_codec_iter_t iter = NULL;
+			vpx_codec_iter_t codec_iter = NULL;
 			vpx_image_t* img = NULL;
 
 			/* TODO: Handle the case where there are multiples. */
@@ -55,7 +61,7 @@ void mbew_iterate(mbew_t* mbew, mbew_iter_cb_t callback) {
 			info.sz = sizeof(vpx_codec_stream_info_t);
 
 			/* Get a data pointer to the corresponding "data chunk." */
-			if(nestegg_packet_data(packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
+			if(nestegg_packet_data(iter->packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
 
 			vpx_codec_peek_stream_info(mbew->video.iface, data, length, &info);
 
@@ -63,25 +69,52 @@ void mbew_iterate(mbew_t* mbew, mbew_iter_cb_t callback) {
 
 			/* Assume there is only one frame.
 			 * TODO: Handle the case where there are multiples. */
-			if((img = vpx_codec_get_frame(&mbew->video.codec, &iter))) {
+			if((img = vpx_codec_get_frame(&mbew->video.codec, &codec_iter))) {
 				/* TODO: Handle the case where the img->d_w and img->d_h are different from the
 				 * value detected in the video.params struture. */
-				video_data.data = video_buffer;
-				video_data.width = img->d_w;
-				video_data.height = img->d_h;
-
-				mbew_format_rgb(img, video_buffer);
-
-				callback(MBEW_ITER_VIDEO, index, tstamp, &video_data);
+				mbew_format_rgb(img, iter->video.data);
 			}
 		}
 
 		/* TODO: Call this when one of the above calls fails. */
-		nestegg_free_packet(packet);
+		nestegg_free_packet(iter->packet);
 
-		index++;
+		iter->index++;
 	}
 
-	if(video_buffer) free(video_buffer);
+	/* Otherwise, we've reached the end. */
+	else {
+		mbew_iter_destroy(iter);
+
+		iter = NULL;
+	}
+
+	return iter;
+}
+
+mbew_num_t mbew_iter_index(mbew_iter_t* iter) {
+	return iter->index;
+}
+
+mbew_ns_t mbew_iter_timestamp(mbew_iter_t* iter) {
+	return iter->timestamp;
+}
+
+mbew_data_t mbew_iter_type(mbew_iter_t* iter) {
+	return iter->type;
+}
+
+mbew_data_video_t* mbew_iter_video(mbew_iter_t* iter) {
+	return &iter->video;
+}
+
+mbew_data_audio_t* mbew_iter_audio(mbew_iter_t* iter) {
+	return &iter->audio;
+}
+
+void mbew_iter_destroy(mbew_iter_t* iter) {
+	if(iter->video.data) free(iter->video.data);
+
+	free(iter);
 }
 
