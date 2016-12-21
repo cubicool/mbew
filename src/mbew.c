@@ -23,6 +23,7 @@ mbew_t* mbew_create(mbew_src_t src, void* data) {
 	/* Regardless of the src, begin calling the "common" setup routines. */
 	if(nestegg_init(&mbew->ne, mbew->ne_io, NULL, -1)) MBEW_RETURN(INIT_IO);
 	if(nestegg_duration(mbew->ne, &mbew->duration)) MBEW_RETURN(DURATION);
+	if(nestegg_tstamp_scale(mbew->ne, &mbew->scale)) MBEW_RETURN(SCALE);
 	if(nestegg_track_count(mbew->ne, &mbew->tracks)) MBEW_RETURN(TRACK_COUNT);
 
 	/* Iterate through all the tracks, latching on to the first audio and video streams found. */
@@ -119,6 +120,7 @@ mbew_prop_val_t mbew_property(mbew_t* mbew, ...) {
 
 	switch(prop) {
 		CASE_PROPERTY(DURATION, ns, duration);
+		CASE_PROPERTY(SCALE, ns, scale);
 		CASE_PROPERTY(TRACKS, num, tracks);
 		CASE_PROPERTY(VIDEO, b, video.track.init);
 		CASE_PROPERTY(VIDEO_TRACK, num, video.track.index);
@@ -141,5 +143,98 @@ mbew_prop_val_t mbew_property(mbew_t* mbew, ...) {
 void mbew_properties(mbew_t* mbew, ...) {
 	/* TODO: Handle a variable number of properties, followed by pointers to be filled with the
 	 * corresponding values. */
+}
+
+static const char* STRINGS[] = {
+	/* Offset: 0 */
+	"MBEW_SRC_FILE",
+	"MBEW_SRC_MEMORY",
+
+	/* Offset: 2 */
+	"MBEW_STATUS_SUCCESS",
+	"MBEW_STATUS_NULL",
+	"MBEW_STATUS_SRC_FILE",
+	"MBEW_STATUS_SRC_MEMORY",
+	"MBEW_STATUS_INIT_IO",
+	"MBEW_STATUS_INIT_CODEC",
+	"MBEW_STATUS_DURATION",
+	"MBEW_STATUS_SCALE",
+	"MBEW_STATUS_TRACK_COUNT",
+	"MBEW_STATUS_UNKNOWN_TRACK",
+	"MBEW_STATUS_PARAMS_VIDEO",
+	"MBEW_STATUS_PARAMS_AUDIO",
+	"MBEW_STATUS_PACKET_TRACK",
+	"MBEW_STATUS_PACKET_COUNT",
+	"MBEW_STATUS_PACKET_TSTAMP",
+	"MBEW_STATUS_PACKET_DURATION",
+	"MBEW_STATUS_PACKET_DATA",
+	"MBEW_STATUS_VPX_DECODE",
+	"MBEW_STATUS_TODO",
+	"MBEW_STATUS_NOT_IMPLEMENTED",
+
+	/* Offset: 22 */
+	"MBEW_PROP_DURATION",
+	"MBEW_PROP_SCALE",
+	"MBEW_PROP_TRACKS",
+	"MBEW_PROP_VIDEO",
+	"MBEW_PROP_VIDEO_TRACK",
+	"MBEW_PROP_VIDEO_WIDTH",
+	"MBEW_PROP_VIDEO_HEIGHT",
+	"MBEW_PROP_AUDIO",
+	"MBEW_PROP_AUDIO_TRACK",
+	"MBEW_PROP_AUDIO_RATE",
+	"MBEW_PROP_AUDIO_CHANNELS",
+	"MBEW_PROP_AUDIO_DEPTH",
+
+	/* Offset: 34 */
+	"MBEW_FALSE",
+	"MBEW_TRUE",
+
+	/* Offset: 36 */
+	"MBEW_ITER_VIDEO",
+	"MBEW_ITER_AUDIO"
+};
+
+#define OFFSET_SRC 0
+#define OFFSET_STATUS 2
+#define OFFSET_PROP 22
+#define OFFSET_BOOL 34
+#define OFFSET_ITER 36
+#define OFFSET_MAX 38
+
+#define VAL_SRC 2
+#define VAL_STATUS 20
+#define VAL_PROP 12
+#define VAL_BOOL 2
+#define VAL_ITER 2
+
+#define CASE_TYPE(ty) case MBEW_TYPE_##ty: if(val < VAL_##ty) { offset = OFFSET_##ty; } break
+
+const char* mbew_string(mbew_type_t type, ...) {
+	va_list arg;
+
+	mbew_num_t val = 0;
+	mbew_num_t offset = OFFSET_MAX;
+
+	va_start(arg, type);
+
+	val = va_arg(arg, mbew_num_t);
+
+	switch(type) {
+		CASE_TYPE(SRC);
+		CASE_TYPE(STATUS);
+		CASE_TYPE(PROP);
+		CASE_TYPE(BOOL);
+		CASE_TYPE(ITER);
+
+		default:
+			break;
+	}
+
+	va_end(arg);
+
+	if(offset < OFFSET_MAX) return STRINGS[offset + val];
+
+	return "ERROR";
 }
 

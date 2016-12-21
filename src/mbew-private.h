@@ -34,6 +34,7 @@ struct _mbew_t {
 
 	/* The WebM duration in nanoseconds. */
 	mbew_ns_t duration;
+	mbew_ns_t scale;
 
 	/* The number of tracks.
 	 * TODO: Currently, only _TWO_ tracks (one audio and one video) are supported! */

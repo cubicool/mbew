@@ -38,25 +38,26 @@ MBEW_API mbew_t* mbew_create(mbew_src_t src, void* data);
 MBEW_API void mbew_destroy(mbew_t* mbew);
 
 typedef enum _mbew_status_t {
-	MBEW_STATUS_SUCCESS = 0,
-	MBEW_STATUS_NULL = 1,
-	MBEW_STATUS_SRC_FILE = 2,
-	MBEW_STATUS_SRC_MEMORY = 3,
-	MBEW_STATUS_INIT_IO = 4,
-	MBEW_STATUS_INIT_CODEC = 5,
-	MBEW_STATUS_DURATION = 6,
-	MBEW_STATUS_TRACK_COUNT = 7,
-	MBEW_STATUS_UNKNOWN_TRACK = 8,
-	MBEW_STATUS_PARAMS_VIDEO = 9,
-	MBEW_STATUS_PARAMS_AUDIO = 10,
-	MBEW_STATUS_PACKET_TRACK = 11,
-	MBEW_STATUS_PACKET_COUNT = 12,
-	MBEW_STATUS_PACKET_TSTAMP = 13,
-	MBEW_STATUS_PACKET_DURATION = 14,
-	MBEW_STATUS_PACKET_DATA = 15,
-	MBEW_STATUS_VPX_DECODE = 16,
-	MBEW_STATUS_TODO = 17,
-	MBEW_STATUS_NOT_IMPLEMENTED = 18
+	MBEW_STATUS_SUCCESS,
+	MBEW_STATUS_NULL,
+	MBEW_STATUS_SRC_FILE,
+	MBEW_STATUS_SRC_MEMORY,
+	MBEW_STATUS_INIT_IO,
+	MBEW_STATUS_INIT_CODEC,
+	MBEW_STATUS_DURATION,
+	MBEW_STATUS_SCALE,
+	MBEW_STATUS_TRACK_COUNT,
+	MBEW_STATUS_UNKNOWN_TRACK,
+	MBEW_STATUS_PARAMS_VIDEO,
+	MBEW_STATUS_PARAMS_AUDIO,
+	MBEW_STATUS_PACKET_TRACK,
+	MBEW_STATUS_PACKET_COUNT,
+	MBEW_STATUS_PACKET_TSTAMP,
+	MBEW_STATUS_PACKET_DURATION,
+	MBEW_STATUS_PACKET_DATA,
+	MBEW_STATUS_VPX_DECODE,
+	MBEW_STATUS_TODO,
+	MBEW_STATUS_NOT_IMPLEMENTED
 } mbew_status_t;
 
 /* Returns the most recent status associated with the given context. */
@@ -67,7 +68,7 @@ typedef unsigned int mbew_num_t;
 typedef double mbew_hz_t;
 
 typedef enum _mbew_bool_t {
-	MBEW_FALSE = 0,
+	MBEW_FALSE,
 	MBEW_TRUE
 } mbew_bool_t;
 
@@ -75,7 +76,12 @@ typedef enum _mbew_prop_t {
 	/* The stream duration in nanoseconds.
 	 *
 	 * [key: duration] [val: mbew_ns_t] */
-	MBEW_PROP_DURATION = 1,
+	MBEW_PROP_DURATION,
+
+	/* The scale for each timestamp value.
+	 *
+	 * [key: scale] [val: mbew_ns_t] */
+	MBEW_PROP_SCALE,
 
 	/* The total number of tracks.
 	 *
@@ -125,9 +131,7 @@ typedef enum _mbew_prop_t {
 	/* Bits per sample.
 	 *
 	 * [key: audio.depth] [val: mbew_num_t] */
-	MBEW_PROP_AUDIO_DEPTH,
-
-	MBEW_PROP_MAX
+	MBEW_PROP_AUDIO_DEPTH
 } mbew_prop_t;
 
 /* This union encapsulates each kind of single value that can be returned as property. */
@@ -144,22 +148,15 @@ MBEW_API mbew_prop_val_t mbew_property(mbew_t* mbew, ...);
 
 MBEW_API void mbew_properties(mbew_t* mbew, ...);
 
-#if 0
 typedef enum _mbew_type_t {
-	/* Enumerations... */
 	MBEW_TYPE_SRC,
 	MBEW_TYPE_STATUS,
 	MBEW_TYPE_BOOL,
 	MBEW_TYPE_PROP,
-	MBEW_TYPE_TYPE,
-
-	/* Structs/Unions.... */
-	MBEW_TYPE_MBEW,
-	MBEW_TYPE_PROP_VAL
+	MBEW_TYPE_ITER
 } mbew_type_t;
 
-MBEW_API const char* mbew_type(mbew_type_t type, ...);
-#endif
+MBEW_API const char* mbew_string(mbew_type_t type, ...);
 
 typedef enum _mbew_iter_t {
 	MBEW_ITER_VIDEO,
@@ -170,17 +167,17 @@ typedef void (*mbew_iter_cb_t)(
 	mbew_iter_t type,
 	mbew_num_t index,
 	mbew_ns_t tstamp,
-	const void* data
+	void* data
 );
 
 typedef struct _mbew_data_video_t {
-	const void* data;
+	void* data;
 	mbew_num_t width;
 	mbew_num_t height;
 } mbew_data_video_t;
 
 typedef struct _mbew_data_audio_t {
-	const void* data;
+	void* data;
 } mbew_data_audio_t;
 
 MBEW_API void mbew_iterate(mbew_t* mbew, mbew_iter_cb_t cb);
