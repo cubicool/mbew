@@ -4,13 +4,15 @@
 
 int main(int argc, char** argv) {
 	mbew_t* mbew = mbew_create(MBEW_SRC_FILE, argv[1]);
+	mbew_status_t status;
 
-	if(!mbew_status(mbew)) {
+	if(!(status = mbew_status(mbew))) {
 		mbew_bool_t b;
 
-		printf("Opened mbew context for '%s'\n", argv[1]);
+		printf("Opened context for '%s'\n", argv[1]);
 
 		printf(" > Duration: %lu\n", mbew_property(mbew, MBEW_PROP_DURATION).ns);
+		printf(" > Scale: %lu\n", mbew_property(mbew, MBEW_PROP_SCALE).ns);
 		printf(" > Tracks: %d\n", mbew_property(mbew, MBEW_PROP_TRACKS).num);
 
 		b = mbew_property(mbew, MBEW_PROP_VIDEO).b;
@@ -33,7 +35,7 @@ int main(int argc, char** argv) {
 		);
 	}
 
-	else printf("Error creating mbew context (status: %d)\n", mbew_status(mbew));
+	else printf("Error creating context (%s)\n", mbew_string(MBEW_TYPE_STATUS, status));
 
 	mbew_destroy(mbew);
 
