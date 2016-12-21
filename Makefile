@@ -8,6 +8,7 @@ EXAMPLE01 = examples/mbew-properties.c
 EXAMPLE02 = examples/mbew-iterate.c
 EXAMPLE03 = examples/mbew-strings.c
 EXAMPLE04 = examples/mbew-video-cairo.c
+EXAMPLE05 = examples/mbew-video-osg.cpp
 
 STATIC_LIBS = \
 	ext/libvpx/libvpx.a \
@@ -19,7 +20,7 @@ DYNAMIC_LIBS = \
 
 CFLAGS = $(shell cat .syntastic) -g
 
-all: mbew-properties mbew-iterate mbew-strings mbew-video-cairo
+all: mbew-properties mbew-iterate mbew-strings mbew-video-cairo mbew-video-osg
 
 ext/libvpx/libvpx.a:
 	@(cd ext/libvpx; ./configure --disable-unit-tests --disable-examples; make)
@@ -38,6 +39,10 @@ mbew-strings: $(SOURCES) $(STATIC_LIBS) $(EXAMPLE03)
 
 mbew-video-cairo: $(SOURCES) $(STATIC_LIBS) $(EXAMPLE04)
 	@gcc -o $(@) $(SOURCES) $(CFLAGS) $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXAMPLE04) -lcairo
+
+mbew-video-osg: $(SOURCES) $(STATIC_LIBS) $(EXAMPLE05)
+	@g++ -o $(@) $(SOURCES) $(CFLAGS) $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXAMPLE05) \
+		-losg -losgViewer -I/usr/include/osg
 
 clean:
 	@rm -f mbew-*

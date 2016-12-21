@@ -10,18 +10,6 @@
 
 #include <iostream>
 
-/* class MBEWImage: public osg::Image {
-public:
-	MBEWImage() {
-	}
-
-	MBEWImage(const Image& image, const osg::CopyOp& co = osg::CopyOp::SHALLOW_COPY) {
-	}
-
-	virtual ~MBEWImage() {
-	}
-}; */
-
 class MBEWUpdateCallback: public osg::Drawable::UpdateCallback {
 public:
 	MBEWUpdateCallback(mbew_t* mbew):
@@ -48,7 +36,6 @@ public:
 
 		if(!_iter) _time.reset();
 
-		// Do MBEW stuff.
 		if((_iter = mbew_iterate(_mbew, _iter))) {
 			if(mbew_iter_type(_iter) != MBEW_DATA_VIDEO) return;
 
@@ -102,8 +89,6 @@ int main(int argc, char** argv) {
 
 	mbew_num_t width = mbew_property(mbew, MBEW_PROP_VIDEO_WIDTH).num;
 	mbew_num_t height = mbew_property(mbew, MBEW_PROP_VIDEO_HEIGHT).num;
-
-	// image->allocateImage(width, height, 1, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV);
 
 	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
