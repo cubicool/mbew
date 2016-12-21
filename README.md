@@ -10,7 +10,7 @@ MBEW currently requires the [NestEgg](https://github.com/kinetiknz/nestegg) and
 [LibVPX](http://www.webmproject.org/code/) submodules. These can be added
 with the standard:
 
-   git submodule update --init
+    git submodule update --init
 
 The MBEW build system will statically integrate these projects.
 
