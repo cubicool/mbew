@@ -2,7 +2,7 @@
 
 #include <osg/Math>
 #include <osg/Geometry>
-#include <osg/Texture2D>
+#include <osg/TextureRectangle>
 #include <osg/Geode>
 #include <osg/BlendFunc>
 #include <osgViewer/Viewer>
@@ -47,8 +47,8 @@ public:
 					video->width,
 					video->height,
 					1,
-					GL_BGRA,
 					GL_RGBA,
+					GL_BGRA,
 					GL_UNSIGNED_INT_8_8_8_8_REV,
 					static_cast<unsigned char*>(video->data),
 					osg::Image::NO_DELETE
@@ -92,15 +92,13 @@ int main(int argc, char** argv) {
 
 	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
-	osg::Texture2D* texture = new osg::Texture2D();
+	osg::TextureRectangle* texture = new osg::TextureRectangle();
 	osg::Geometry* geom = osg::createTexturedQuadGeometry(
 		osg::Vec3(0.0f, 0.0f, 0.0f),
-		osg::Vec3(image->s(), 0.0f, 0.0f),
-		osg::Vec3(0.0f, 0.0f, image->t()),
-		0.0f,
-		0.0f,
-		1.0f,
-		1.0f
+		osg::Vec3(width, 0.0f, 0.0f),
+		osg::Vec3(0.0f, 0.0f, height),
+		width, height, 0.0f,
+		0.0f
 	);
 
 	texture->setImage(image);
