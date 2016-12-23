@@ -92,6 +92,24 @@ void mbew_destroy(mbew_t* mbew) {
 	free(mbew);
 }
 
+#define BOOL_RETURN(st) { mbew->status = MBEW_STATUS_##st; return MBEW_FALSE; }
+
+mbew_bool_t mbew_reset(mbew_t* mbew) {
+	if(nestegg_offset_seek(mbew->ne, 0)) BOOL_RETURN(SEEK_OFFSET);
+
+	if(
+		mbew->video.track.init &&
+		nestegg_track_seek(mbew->ne, mbew->video.track.index, 0)
+	) BOOL_RETURN(SEEK_VIDEO);
+
+	if(
+		mbew->audio.track.init &&
+		nestegg_track_seek(mbew->ne, mbew->audio.track.index, 0)
+	) BOOL_RETURN(SEEK_AUDIO);
+
+	return MBEW_TRUE;
+}
+
 mbew_status_t mbew_status(mbew_t* mbew) {
 	return !mbew ? MBEW_STATUS_NULL : mbew->status;
 }
@@ -146,11 +164,12 @@ void mbew_properties(mbew_t* mbew, ...) {
 }
 
 static const char* STRINGS[] = {
-	/* Offset: 0 */
+	"MBEW_FALSE",
+	"MBEW_TRUE",
+
 	"MBEW_SRC_FILE",
 	"MBEW_SRC_MEMORY",
 
-	/* Offset: 2 */
 	"MBEW_STATUS_SUCCESS",
 	"MBEW_STATUS_NULL",
 	"MBEW_STATUS_SRC_FILE",
@@ -169,10 +188,12 @@ static const char* STRINGS[] = {
 	"MBEW_STATUS_PACKET_DURATION",
 	"MBEW_STATUS_PACKET_DATA",
 	"MBEW_STATUS_VPX_DECODE",
+	"MBEW_STATUS_SEEK_OFFSET",
+	"MBEW_STATUS_SEEK_VIDEO",
+	"MBEW_STATUS_SEEK_AUDIO",
 	"MBEW_STATUS_TODO",
 	"MBEW_STATUS_NOT_IMPLEMENTED",
 
-	/* Offset: 22 */
 	"MBEW_PROP_DURATION",
 	"MBEW_PROP_SCALE",
 	"MBEW_PROP_TRACKS",
@@ -186,26 +207,21 @@ static const char* STRINGS[] = {
 	"MBEW_PROP_AUDIO_CHANNELS",
 	"MBEW_PROP_AUDIO_DEPTH",
 
-	/* Offset: 34 */
-	"MBEW_FALSE",
-	"MBEW_TRUE",
-
-	/* Offset: 36 */
 	"MBEW_DATA_VIDEO",
 	"MBEW_DATA_AUDIO"
 };
 
-#define OFFSET_SRC 0
-#define OFFSET_STATUS 2
-#define OFFSET_PROP 22
-#define OFFSET_BOOL 34
-#define OFFSET_DATA 36
-#define OFFSET_MAX 38
+#define OFFSET_BOOL 0
+#define OFFSET_SRC 2
+#define OFFSET_STATUS 4
+#define OFFSET_PROP 27
+#define OFFSET_DATA 39
+#define OFFSET_MAX 41
 
-#define VAL_SRC 2
-#define VAL_STATUS 20
-#define VAL_PROP 12
 #define VAL_BOOL 2
+#define VAL_SRC 2
+#define VAL_STATUS 23
+#define VAL_PROP 12
 #define VAL_DATA 2
 
 #define CASE_TYPE(ty) case MBEW_TYPE_##ty: if(val < VAL_##ty) { offset = OFFSET_##ty; } break
@@ -221,10 +237,10 @@ const char* mbew_string(mbew_type_t type, ...) {
 	val = va_arg(arg, mbew_num_t);
 
 	switch(type) {
+		CASE_TYPE(BOOL);
 		CASE_TYPE(SRC);
 		CASE_TYPE(STATUS);
 		CASE_TYPE(PROP);
-		CASE_TYPE(BOOL);
 		CASE_TYPE(DATA);
 
 		default:

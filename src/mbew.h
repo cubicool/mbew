@@ -22,6 +22,11 @@ MBEW_API_BEGIN
 
 typedef struct _mbew_t mbew_t;
 
+typedef enum _mbew_bool_t {
+	MBEW_FALSE,
+	MBEW_TRUE
+} mbew_bool_t;
+
 typedef enum _mbew_src_t {
 	/* Reads a WebM file from disk using the traditional fopen/fclose/etc. interface. */
 	MBEW_SRC_FILE,
@@ -35,6 +40,10 @@ MBEW_API mbew_t* mbew_create(mbew_src_t src, void* data);
 
 /* Destroys a previously created context. */
 MBEW_API void mbew_destroy(mbew_t* mbew);
+
+/* TODO: Create some mechanism by which any mbew_iter_t instances bound to this stream are aware of
+ * resets as they occur. */
+MBEW_API mbew_bool_t mbew_reset(mbew_t* mbew);
 
 typedef enum _mbew_status_t {
 	MBEW_STATUS_SUCCESS,
@@ -55,6 +64,9 @@ typedef enum _mbew_status_t {
 	MBEW_STATUS_PACKET_DURATION,
 	MBEW_STATUS_PACKET_DATA,
 	MBEW_STATUS_VPX_DECODE,
+	MBEW_STATUS_SEEK_OFFSET,
+	MBEW_STATUS_SEEK_VIDEO,
+	MBEW_STATUS_SEEK_AUDIO,
 	MBEW_STATUS_TODO,
 	MBEW_STATUS_NOT_IMPLEMENTED
 } mbew_status_t;
@@ -65,11 +77,6 @@ MBEW_API mbew_status_t mbew_status(mbew_t* mbew);
 typedef uint64_t mbew_ns_t;
 typedef unsigned int mbew_num_t;
 typedef double mbew_hz_t;
-
-typedef enum _mbew_bool_t {
-	MBEW_FALSE,
-	MBEW_TRUE
-} mbew_bool_t;
 
 typedef enum _mbew_prop_t {
 	/* The stream duration in nanoseconds.
@@ -148,11 +155,12 @@ MBEW_API mbew_prop_val_t mbew_property(mbew_t* mbew, ...);
 MBEW_API void mbew_properties(mbew_t* mbew, ...);
 
 typedef enum _mbew_type_t {
+	MBEW_TYPE_BOOL,
 	MBEW_TYPE_SRC,
 	MBEW_TYPE_STATUS,
-	MBEW_TYPE_BOOL,
 	MBEW_TYPE_PROP,
-	MBEW_TYPE_DATA
+	MBEW_TYPE_DATA,
+	MBEW_TYPE_ITER_BIT
 } mbew_type_t;
 
 MBEW_API const char* mbew_string(mbew_type_t type, ...);
@@ -163,9 +171,18 @@ typedef enum _mbew_data_t {
 } mbew_data_t;
 
 typedef struct _mbew_data_video_t {
-	void* data;
 	mbew_num_t width;
 	mbew_num_t height;
+
+	struct {
+		void* rgb;
+
+		struct {
+			unsigned char** planes;
+			mbew_num_t* stride;
+			mbew_num_t bps;
+		} yuv;
+	} data;
 } mbew_data_video_t;
 
 typedef struct _mbew_data_audio_t {
@@ -174,7 +191,13 @@ typedef struct _mbew_data_audio_t {
 
 typedef struct _mbew_iter_t mbew_iter_t;
 
-MBEW_API mbew_iter_t* mbew_iterate(mbew_t* mbew, mbew_iter_t* iter);
+typedef enum _mbew_iter_bit_t {
+	MBEW_ITER_VIDEO_ONLY = (1 << 0),
+	MBEW_ITER_AUDIO_ONLY = (1 << 1),
+	MBEW_ITER_FORMAT_RGB = (1 << 2)
+} mbew_iter_bit_t;
+
+MBEW_API mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags);
 
 MBEW_API mbew_num_t mbew_iter_index(mbew_iter_t* iter);
 MBEW_API mbew_ns_t mbew_iter_timestamp(mbew_iter_t* iter);

@@ -5,43 +5,44 @@
 
 #define MBEW_RETURN(st) { \
 	mbew->status = MBEW_STATUS_##st; \
-	nestegg_free_packet(iter->packet); \
-	mbew_iter_destroy(iter); \
-	return NULL; \
+	nestegg_free_packet((*iter)->packet); \
+	return MBEW_FALSE; \
 }
 
-mbew_iter_t* mbew_iterate(mbew_t* mbew, mbew_iter_t* iter) {
+mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags) {
 	/* If iter is NULL, this is the first time iterate has been called. */
-	if(!iter) {
-		iter = (mbew_iter_t*)(calloc(1, sizeof(mbew_iter_t)));
+	if(!*iter) {
+		*iter = (mbew_iter_t*)(calloc(1, sizeof(mbew_iter_t)));
 
 		if(mbew->video.track.init) {
-			iter->video.data = (unsigned char*)(malloc(
-				mbew->video.params.width *
-				mbew->video.params.height *
-				4
-			));
+			if(flags & MBEW_ITER_FORMAT_RGB) {
+				(*iter)->video.data.rgb = (unsigned char*)(malloc(
+					mbew->video.params.width *
+					mbew->video.params.height *
+					4
+				));
+			}
 
-			iter->video.width = mbew->video.params.width;
-			iter->video.height = mbew->video.params.height;
+			(*iter)->video.width = mbew->video.params.width;
+			(*iter)->video.height = mbew->video.params.height;
 		}
 	}
 
-	if(nestegg_read_packet(mbew->ne, &iter->packet) > 0) {
+	if(nestegg_read_packet(mbew->ne, &(*iter)->packet) > 0) {
 		mbew_num_t track = 0;
 		mbew_num_t count = 0;
 		mbew_ns_t duration = 0;
 
 		int type;
 
-		if(nestegg_packet_track(iter->packet, &track)) MBEW_RETURN(PACKET_TRACK);
-		if(nestegg_packet_count(iter->packet, &count)) MBEW_RETURN(PACKET_COUNT);
-		if(nestegg_packet_tstamp(iter->packet, &iter->timestamp)) MBEW_RETURN(PACKET_TSTAMP);
+		if(nestegg_packet_track((*iter)->packet, &track)) MBEW_RETURN(PACKET_TRACK);
+		if(nestegg_packet_count((*iter)->packet, &count)) MBEW_RETURN(PACKET_COUNT);
+		if(nestegg_packet_tstamp((*iter)->packet, &(*iter)->timestamp)) MBEW_RETURN(PACKET_TSTAMP);
 
 		/* TODO: Why does the following code ALWAYS fail?
 		if(nestegg_packet_duration(packet.ne, &packet.duration)) MBEW_RETURN(PACKET_DURATION); */
 
-		nestegg_packet_duration(iter->packet, &duration);
+		nestegg_packet_duration((*iter)->packet, &duration);
 
 		type = nestegg_track_type(mbew->ne, track);
 
@@ -61,35 +62,44 @@ mbew_iter_t* mbew_iterate(mbew_t* mbew, mbew_iter_t* iter) {
 			info.sz = sizeof(vpx_codec_stream_info_t);
 
 			/* Get a data pointer to the corresponding "data chunk." */
-			if(nestegg_packet_data(iter->packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
+			if(nestegg_packet_data((*iter)->packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
 
 			vpx_codec_peek_stream_info(mbew->video.iface, data, length, &info);
 
 			if(vpx_codec_decode(&mbew->video.codec, data, length, NULL, 0)) MBEW_RETURN(VPX_DECODE);
 
 			/* Assume there is only one frame.
-			 * TODO: Handle the case where there are multiples. */
+			 * TODO: Handle the case where there are multiples frames-in-frame. */
 			if((img = vpx_codec_get_frame(&mbew->video.codec, &codec_iter))) {
 				/* TODO: Handle the case where the img->d_w and img->d_h are different from the
 				 * value detected in the video.params struture. */
-				mbew_format_rgb(img, iter->video.data);
+				if(flags & MBEW_ITER_FORMAT_RGB) mbew_format_rgb(img, (*iter)->video.data.rgb);
+
+				/* Otherwise, leave the YUV420 data unmolested. */
+				else {
+					(*iter)->video.data.yuv.planes = img->planes;
+					(*iter)->video.data.yuv.stride = (mbew_num_t*)(img->stride);
+					(*iter)->video.data.yuv.bps = img->bps;
+				}
 			}
 		}
 
 		/* TODO: Call this when one of the above calls fails. */
-		nestegg_free_packet(iter->packet);
+		nestegg_free_packet((*iter)->packet);
 
-		iter->index++;
+		(*iter)->index++;
 	}
 
 	/* Otherwise, we've reached the end. */
 	else {
-		mbew_iter_destroy(iter);
+		(*iter)->packet = NULL;
+		(*iter)->index = 0;
+		(*iter)->timestamp = 0;
 
-		iter = NULL;
+		return MBEW_FALSE;
 	}
 
-	return iter;
+	return MBEW_TRUE;
 }
 
 mbew_num_t mbew_iter_index(mbew_iter_t* iter) {
@@ -115,7 +125,7 @@ mbew_data_audio_t* mbew_iter_audio(mbew_iter_t* iter) {
 void mbew_iter_destroy(mbew_iter_t* iter) {
 	if(!iter) return;
 
-	if(iter->video.data) free(iter->video.data);
+	if(iter->video.data.rgb) free(iter->video.data.rgb);
 
 	free(iter);
 }
