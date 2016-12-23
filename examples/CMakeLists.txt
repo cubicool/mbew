@@ -6,10 +6,7 @@ FUNCTION(ADD_EXAMPLE _name)
 
 	ADD_EXECUTABLE("mbew-${EXAMPLE_NAME}" "mbew-${EXAMPLE_NAME}${EXAMPLE_EXT}")
 
-	TARGET_LINK_LIBRARIES("mbew-${EXAMPLE_NAME}"
-		mbew mbew-vpx mbew-nestegg pthread m
-		${ARGV1} ${ARGV2} ${ARGV3}
-	)
+	TARGET_LINK_LIBRARIES("mbew-${EXAMPLE_NAME}" mbew pthread m ${ARGV1} ${ARGV2} ${ARGV3})
 ENDFUNCTION()
 
 ADD_EXAMPLE(iterate.c)

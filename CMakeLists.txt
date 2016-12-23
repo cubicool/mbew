@@ -47,9 +47,7 @@ SOURCE_GROUP("Header Files" FILES ${MBEW_HEADER_FILES})
 SOURCE_GROUP("Source Files" FILES ${MBEW_SRC_FILES})
 
 ADD_LIBRARY(mbew ${MBEW_LIBRARY_TYPE} ${MBEW_HEADER_FILES} ${MBEW_SRC_FILES})
-
-# ADD_EXECUTABLE(mbew-properties "examples/mbew-properties.c")
-# TARGET_LINK_LIBRARIES(mbew-properties mbew mbew-vpx mbew-nestegg pthread m)
+TARGET_LINK_LIBRARIES(mbew mbew-vpx mbew-nestegg)
 
 ADD_SUBDIRECTORY("examples")
 

@@ -113,6 +113,8 @@ mbew_data_audio_t* mbew_iter_audio(mbew_iter_t* iter) {
 }
 
 void mbew_iter_destroy(mbew_iter_t* iter) {
+	if(!iter) return;
+
 	if(iter->video.data) free(iter->video.data);
 
 	free(iter);
