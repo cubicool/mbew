@@ -28,15 +28,17 @@ typedef enum _mbew_bool_t {
 } mbew_bool_t;
 
 typedef enum _mbew_src_t {
-	/* Reads a WebM file from disk using the traditional fopen/fclose/etc. interface. */
+	/* Reads a WebM file from disk using the traditional fopen/fclose/etc. interface. A single
+	 * argument is passed to mbew_create(), which is the path to file to be opened. */
 	MBEW_SRC_FILE,
 
-	/* Reads a WebM file from a buffer of memory. */
+	/* Reads a WebM file from a buffer of memory. Two arguments are passed to mbew_create(): a
+	 * void* pointer to the memory location and a size_t argument indicating its size. */
 	MBEW_SRC_MEMORY
 } mbew_src_t;
 
 /* Creates a new context for the given source type. */
-MBEW_API mbew_t* mbew_create(mbew_src_t src, void* data);
+MBEW_API mbew_t* mbew_create(mbew_src_t src, ...);
 
 /* Destroys a previously created context. */
 MBEW_API void mbew_destroy(mbew_t* mbew);
@@ -58,12 +60,14 @@ typedef enum _mbew_status_t {
 	MBEW_STATUS_UNKNOWN_TRACK,
 	MBEW_STATUS_PARAMS_VIDEO,
 	MBEW_STATUS_PARAMS_AUDIO,
+	MBEW_STATUS_PACKET_READ,
 	MBEW_STATUS_PACKET_TRACK,
 	MBEW_STATUS_PACKET_COUNT,
 	MBEW_STATUS_PACKET_TSTAMP,
 	MBEW_STATUS_PACKET_DURATION,
 	MBEW_STATUS_PACKET_DATA,
 	MBEW_STATUS_VPX_DECODE,
+	MBEW_STATUS_GET_FRAME,
 	MBEW_STATUS_SEEK_OFFSET,
 	MBEW_STATUS_SEEK_VIDEO,
 	MBEW_STATUS_SEEK_AUDIO,

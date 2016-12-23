@@ -1,24 +1,27 @@
 #include "mbew-private.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
 #define MBEW_RETURN(st) { mbew->status = MBEW_STATUS_##st; return mbew; }
 
-mbew_t* mbew_create(mbew_src_t src, void* data) {
+mbew_t* mbew_create(mbew_src_t src, ...) {
 	mbew_t* mbew = (mbew_t*)(calloc(1, sizeof(mbew_t)));
 
 	mbew_num_t i;
 
+	va_list args;
+
 	/* If calloc() fails for some reason, return NULL. */
 	if(!mbew) return NULL;
 
-	/* Call the appropriate src setup function. */
-	if(src != MBEW_SRC_FILE) MBEW_RETURN(NOT_IMPLEMENTED);
+	va_start(args, src);
 
-	if(!mbew_create_src_file(mbew, data)) MBEW_RETURN(SRC_FILE);
+	/* mbew_src_create() will properly set the error status, if any. */
+	if(!mbew_src_create(src, mbew, args)) return NULL;
+
+	va_end(args);
 
 	/* Regardless of the src, begin calling the "common" setup routines. */
 	if(nestegg_init(&mbew->ne, mbew->ne_io, NULL, -1)) MBEW_RETURN(INIT_IO);
@@ -83,11 +86,10 @@ mbew_t* mbew_create(mbew_src_t src, void* data) {
 }
 
 void mbew_destroy(mbew_t* mbew) {
-	if(mbew->src == MBEW_SRC_FILE && mbew->ne_io.userdata) fclose(mbew->ne_io.userdata);
-
 	if(mbew->video.track.init) vpx_codec_destroy(&mbew->video.codec);
-
 	if(mbew->ne) nestegg_destroy(mbew->ne);
+
+	mbew_src_destroy(mbew);
 
 	free(mbew);
 }
@@ -182,12 +184,14 @@ static const char* STRINGS[] = {
 	"MBEW_STATUS_UNKNOWN_TRACK",
 	"MBEW_STATUS_PARAMS_VIDEO",
 	"MBEW_STATUS_PARAMS_AUDIO",
+	"MBEW_STATUS_PACKET_READ",
 	"MBEW_STATUS_PACKET_TRACK",
 	"MBEW_STATUS_PACKET_COUNT",
 	"MBEW_STATUS_PACKET_TSTAMP",
 	"MBEW_STATUS_PACKET_DURATION",
 	"MBEW_STATUS_PACKET_DATA",
 	"MBEW_STATUS_VPX_DECODE",
+	"MBEW_STATUS_GET_FRAME",
 	"MBEW_STATUS_SEEK_OFFSET",
 	"MBEW_STATUS_SEEK_VIDEO",
 	"MBEW_STATUS_SEEK_AUDIO",
@@ -214,13 +218,13 @@ static const char* STRINGS[] = {
 #define OFFSET_BOOL 0
 #define OFFSET_SRC 2
 #define OFFSET_STATUS 4
-#define OFFSET_PROP 27
-#define OFFSET_DATA 39
-#define OFFSET_MAX 41
+#define OFFSET_PROP 29
+#define OFFSET_DATA 41
+#define OFFSET_MAX 43
 
 #define VAL_BOOL 2
 #define VAL_SRC 2
-#define VAL_STATUS 23
+#define VAL_STATUS 25
 #define VAL_PROP 12
 #define VAL_DATA 2
 

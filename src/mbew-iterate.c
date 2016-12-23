@@ -3,6 +3,25 @@
 #include <string.h>
 #include <stdlib.h>
 
+static mbew_iter_t* mbew_iter_create(mbew_t* mbew, mbew_num_t flags) {
+	mbew_iter_t* iter = (mbew_iter_t*)(calloc(1, sizeof(mbew_iter_t)));
+
+	if(mbew->video.track.init) {
+		if(flags & MBEW_ITER_FORMAT_RGB) {
+			iter->video.data.rgb = (unsigned char*)(malloc(
+				mbew->video.params.width *
+				mbew->video.params.height *
+				4
+			));
+		}
+
+		iter->video.width = mbew->video.params.width;
+		iter->video.height = mbew->video.params.height;
+	}
+
+	return iter;
+}
+
 #define MBEW_RETURN(st) { \
 	mbew->status = MBEW_STATUS_##st; \
 	nestegg_free_packet((*iter)->packet); \
@@ -10,25 +29,15 @@
 }
 
 mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags) {
+	int e;
+
 	/* If iter is NULL, this is the first time iterate has been called. */
-	if(!*iter) {
-		*iter = (mbew_iter_t*)(calloc(1, sizeof(mbew_iter_t)));
+	if(!*iter) *iter = mbew_iter_create(mbew, flags);
 
-		if(mbew->video.track.init) {
-			if(flags & MBEW_ITER_FORMAT_RGB) {
-				(*iter)->video.data.rgb = (unsigned char*)(malloc(
-					mbew->video.params.width *
-					mbew->video.params.height *
-					4
-				));
-			}
-
-			(*iter)->video.width = mbew->video.params.width;
-			(*iter)->video.height = mbew->video.params.height;
-		}
-	}
-
-	if(nestegg_read_packet(mbew->ne, &(*iter)->packet) > 0) {
+	/* 1 = more infor
+	 * 0 = end of stream
+	 * -1 = error */
+	if((e = nestegg_read_packet(mbew->ne, &(*iter)->packet)) > 0) {
 		mbew_num_t track = 0;
 		mbew_num_t count = 0;
 		mbew_ns_t duration = 0;
@@ -46,7 +55,7 @@ mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags) {
 
 		type = nestegg_track_type(mbew->ne, track);
 
-		if(type == NESTEGG_TRACK_VIDEO) {
+		if(type == NESTEGG_TRACK_VIDEO && !(flags & MBEW_ITER_AUDIO_ONLY)) {
 			unsigned char* data = NULL;
 			size_t length;
 
@@ -82,22 +91,32 @@ mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags) {
 					(*iter)->video.data.yuv.bps = img->bps;
 				}
 			}
+
+			else MBEW_RETURN(GET_FRAME);
+
+			(*iter)->type = MBEW_DATA_VIDEO;
 		}
 
-		/* TODO: Call this when one of the above calls fails. */
+		else if(type == NESTEGG_TRACK_AUDIO && !(flags & MBEW_ITER_VIDEO_ONLY)) {
+			(*iter)->type = MBEW_DATA_AUDIO;
+		}
+
 		nestegg_free_packet((*iter)->packet);
 
 		(*iter)->index++;
 	}
 
-	/* Otherwise, we've reached the end. */
-	else {
+	/* If 0 was returned, we've reached the end of the stream. */
+	else if(!e) {
 		(*iter)->packet = NULL;
 		(*iter)->index = 0;
 		(*iter)->timestamp = 0;
 
 		return MBEW_FALSE;
 	}
+
+	/* Anything else indicates an error occurred. */
+	else MBEW_RETURN(PACKET_READ);
 
 	return MBEW_TRUE;
 }

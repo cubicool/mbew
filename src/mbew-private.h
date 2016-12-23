@@ -6,6 +6,8 @@
 #include "vpx/vp8dx.h"
 #include "nestegg/nestegg.h"
 
+#include <stdarg.h>
+
 typedef struct _mbew_track_t {
 	mbew_num_t type;
 	mbew_num_t codec;
@@ -60,8 +62,8 @@ struct _mbew_iter_t {
 	mbew_data_audio_t audio;
 };
 
-mbew_bool_t mbew_create_src_file(mbew_t* mbew, void* data);
-mbew_bool_t mbew_create_src_memory(mbew_t* mbew, void* data);
+mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t* mbew, va_list args);
+void mbew_src_destroy(mbew_t* mbew);
 
 void mbew_format_rgb(vpx_image_t* img, uint8_t* dest);
 
