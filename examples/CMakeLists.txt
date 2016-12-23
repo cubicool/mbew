@@ -1,0 +1,20 @@
+INCLUDE_DIRECTORIES("/usr/include/cairo")
+
+FUNCTION(ADD_EXAMPLE _name)
+	GET_FILENAME_COMPONENT(EXAMPLE_NAME ${_name} NAME_WE)
+	GET_FILENAME_COMPONENT(EXAMPLE_EXT ${_name} EXT)
+
+	ADD_EXECUTABLE("mbew-${EXAMPLE_NAME}" "mbew-${EXAMPLE_NAME}${EXAMPLE_EXT}")
+
+	TARGET_LINK_LIBRARIES("mbew-${EXAMPLE_NAME}"
+		mbew mbew-vpx mbew-nestegg pthread m
+		${ARGV1} ${ARGV2} ${ARGV3}
+	)
+ENDFUNCTION()
+
+ADD_EXAMPLE(iterate.c)
+ADD_EXAMPLE(properties.c)
+ADD_EXAMPLE(strings.c)
+ADD_EXAMPLE(video-cairo.c cairo)
+ADD_EXAMPLE(video-osg.cpp osg osgViewer)
+
