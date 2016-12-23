@@ -11,8 +11,8 @@ int main(int argc, char** argv) {
 
 		printf("Opened context for '%s'\n", argv[1]);
 
-		printf(" > Duration: %lu\n", mbew_property(mbew, MBEW_PROP_DURATION).ns);
-		printf(" > Scale: %lu\n", mbew_property(mbew, MBEW_PROP_SCALE).ns);
+		printf(" > Duration: %luns\n", mbew_property(mbew, MBEW_PROP_DURATION).ns);
+		printf(" > Scale: %luns\n", mbew_property(mbew, MBEW_PROP_SCALE).ns);
 		printf(" > Tracks: %d\n", mbew_property(mbew, MBEW_PROP_TRACKS).num);
 
 		b = mbew_property(mbew, MBEW_PROP_VIDEO).b;

@@ -26,10 +26,11 @@ int main(int argc, char** argv) {
 				);
 			}
 
-			if(!mbew_reset(mbew)) printf(
-				"Couldn't reset: %s\n",
-				mbew_string(MBEW_TYPE_STATUS, mbew_status(mbew))
-			);
+			if(!mbew_reset(mbew)) {
+				printf("Couldn't reset: %s\n", mbew_string(MBEW_TYPE_STATUS, mbew_status(mbew)));
+
+				break;
+			}
 		}
 
 		mbew_iter_destroy(iter);
