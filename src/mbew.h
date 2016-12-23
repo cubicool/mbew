@@ -1,19 +1,18 @@
 #ifndef MBEW_H
 #define MBEW_H 1
 
-#define MBEW_API_BEGIN
-#define MBEW_API_END
-#define MBEW_API
+#ifdef  __cplusplus
+	#define MBEW_API_BEGIN extern "C" {
+	#define MBEW_API_END }
+#else
+	#define MBEW_API_BEGIN
+	#define MBEW_API_END
+#endif
 
-#if defined(MBEW_API_PUBLIC)
-	#ifdef  __cplusplus
-		#define MBEW_API_BEGIN extern "C" {
-		#define MBEW_API_END }
-	#endif
-
-	#if defined(_MSC_VER)
-		#define MBEW_API __declspec(dllimport)
-	#endif
+#if defined(_MSC_VER)
+	#define MBEW_API __declspec(dllimport)
+#else
+	#define MBEW_API
 #endif
 
 #include <limits.h>
