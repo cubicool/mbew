@@ -14,10 +14,19 @@ with the standard:
 
 The MBEW build system will statically integrate these projects.
 
+# Compilation
+
+MBEW compilation is facilitated through CMake. In addition, custom
+CMakeLists.txt files for each submodule used in MBEW have also been added. This
+means that the dependencies themselves can be easily controlled and built along
+with the toplevel library, and as such, easily embedded into the final shared
+(or static) result.
+
 # Major TODO Items
 
 - Add Vorbis and Opus support.
-- Add CMake support.
 - Create C++11 wrapper code.
 - Support for preloading/caching and entire WebM stream for better performance.
+- mbew_iter_t instances created within mbew_iterate() need to be aware of stream
+  resets/seeks/etc. as they occur.
 

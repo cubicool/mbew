@@ -10,7 +10,7 @@ void iter_to_cairo(mbew_iter_t* iter) {
 		mbew_data_video_t* data = mbew_iter_video(iter);
 
 		cairo_surface_t* surface = cairo_image_surface_create_for_data(
-			data->data,
+			data->data.rgb,
 			CAIRO_FORMAT_RGB24,
 			data->width,
 			data->height,
@@ -31,7 +31,9 @@ int main(int argc, char** argv) {
 	if(!(status = mbew_status(mbew))) {
 		mbew_iter_t* iter = NULL;
 
-		while((iter = mbew_iterate(mbew, iter))) iter_to_cairo(iter);
+		while(mbew_iterate(mbew, &iter, MBEW_ITER_FORMAT_RGB)) iter_to_cairo(iter);
+
+		mbew_iter_destroy(iter);
 	}
 
 	else printf("Error creating context (%s)\n", mbew_string(MBEW_TYPE_STATUS, status));

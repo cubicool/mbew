@@ -1,6 +1,6 @@
 -Isrc
--Iext/libvpx
--Iext/nestegg/include
+-Iext/mbew-vpx/libvpx
+-Iext/mbew-nestegg/nestegg/include
 -I/usr/include/cairo
 -W
 -Wall

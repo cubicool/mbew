@@ -1,5 +1,3 @@
-INCLUDE_DIRECTORIES("/usr/include/cairo")
-
 FUNCTION(ADD_EXAMPLE _name)
 	GET_FILENAME_COMPONENT(EXAMPLE_NAME ${_name} NAME_WE)
 	GET_FILENAME_COMPONENT(EXAMPLE_EXT ${_name} EXT)
@@ -12,6 +10,12 @@ ENDFUNCTION()
 ADD_EXAMPLE(iterate.c)
 ADD_EXAMPLE(properties.c)
 ADD_EXAMPLE(strings.c)
+
+# TODO: Make these conditional!
+INCLUDE_DIRECTORIES("/usr/include/cairo")
 ADD_EXAMPLE(video-cairo.c cairo)
+
 ADD_EXAMPLE(video-osg.cpp osg osgViewer)
+
+ADD_EXAMPLE(video-sdl.c SDL)
 

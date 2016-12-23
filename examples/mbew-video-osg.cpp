@@ -17,26 +17,16 @@ public:
 	_iter(NULL) {
 	}
 
-	virtual void update(osg::NodeVisitor*, osg::Drawable* drawable) {
-		osg::StateSet* ss = drawable->getStateSet();
+	~MBEWUpdateCallback() {
+		mbew_iter_destroy(_iter);
+	}
 
-		if(!ss) return;
-
-		osg::StateAttribute* sa = ss->getTextureAttribute(0, osg::StateAttribute::TEXTURE);
-
-		if(!sa) return;
-
-		osg::Texture* tex = sa->asTexture();
-
-		if(!tex) return;
-
-		osg::Image* image = dynamic_cast<osg::Image*>(tex->getImage(0));
+	virtual void update(osg::NodeVisitor* nv, osg::Drawable* drawable) {
+		osg::Image* image = _getImage(drawable);
 
 		if(!image) return;
 
-		if(!_iter) _time.reset();
-
-		if((_iter = mbew_iterate(_mbew, _iter))) {
+		if(mbew_iterate(_mbew, &_iter, MBEW_ITER_FORMAT_RGB)) {
 			if(mbew_iter_type(_iter) != MBEW_DATA_VIDEO) return;
 
 			mbew_data_video_t* video = mbew_iter_video(_iter);
@@ -50,7 +40,7 @@ public:
 					GL_RGBA,
 					GL_BGRA,
 					GL_UNSIGNED_INT_8_8_8_8_REV,
-					static_cast<unsigned char*>(video->data),
+					static_cast<unsigned char*>(video->data.rgb),
 					osg::Image::NO_DELETE
 				);
 
@@ -60,6 +50,28 @@ public:
 			}
 		}
 	}
+
+protected:
+	osg::Image* _getImage(osg::Drawable* drawable) {
+		osg::StateSet* ss = drawable->getStateSet();
+
+		if(!ss) return NULL;
+
+		osg::StateAttribute* sa = ss->getTextureAttribute(0, osg::StateAttribute::TEXTURE);
+
+		if(!sa) return NULL;
+
+		osg::Texture* tex = sa->asTexture();
+
+		if(!tex) return NULL;
+
+		osg::Image* image = dynamic_cast<osg::Image*>(tex->getImage(0));
+
+		if(!image) return NULL;
+
+		return image;
+	}
+
 
 private:
 	mbew_t* _mbew;
@@ -97,7 +109,9 @@ int main(int argc, char** argv) {
 		osg::Vec3(0.0f, 0.0f, 0.0f),
 		osg::Vec3(width, 0.0f, 0.0f),
 		osg::Vec3(0.0f, 0.0f, height),
-		width, height, 0.0f,
+		width,
+		height,
+		0.0f,
 		0.0f
 	);
 
