@@ -4,56 +4,59 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void mbew_iter_reset(mbew_t* mbew) {
-	if(mbew->iter.packet) nestegg_free_packet(mbew->iter.packet);
+void mbew_iter_reset(mbew_t m) {
+	if(m->iter.packet) nestegg_free_packet(m->iter.packet);
 
-	memset(&mbew->iter, 0, sizeof(mbew_iter_t));
+	memset(&m->iter, 0, sizeof(mbew_iter_t));
 }
 
 #define MBEW_RETURN(st) { \
-	mbew->status = MBEW_STATUS_##st; \
-	mbew_iter_reset(mbew); \
+	m->status = MBEW_STATUS_##st; \
+	mbew_iter_reset(m); \
 	return MBEW_FALSE; \
 }
 
-mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_num_t flags) {
+mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	int e;
+
+	/* Check for any conflicting flag bits. */
+	if(flags & (MBEW_ITER_VIDEO_ONLY | MBEW_ITER_AUDIO_ONLY)) MBEW_RETURN(ITER_FLAGS);
 
 	/* In MBEW_ITER_SYNC mode, the user is expected to feed elapsed time data into the iteration
 	 * state before any data is yielded. */
-	if((flags & MBEW_ITER_SYNC) && (mbew->iter.elapsed < mbew->iter.timestamp)) return MBEW_TRUE;
+	if((flags & MBEW_ITER_SYNC) && (m->iter.elapsed < m->iter.timestamp)) return MBEW_TRUE;
 
 	/* If iter is NULL, this is the first time iterate has been called. */
-	if(!mbew->iter.active) {
-		if(mbew->video.track.init && (flags & MBEW_ITER_FORMAT_RGB)) {
-			mbew->video.data.rgb = (mbew_bytes_t)(malloc(
-				mbew->video.params.width *
-				mbew->video.params.height *
+	if(!m->iter.active) {
+		if(m->video.track.init && (flags & MBEW_ITER_FORMAT_RGB)) {
+			m->video.data.rgb = (mbew_bytes_t)(malloc(
+				m->video.params.width *
+				m->video.params.height *
 				4
 			));
 		}
 
-		mbew->iter.active = MBEW_TRUE;
-		mbew->iter.flags = flags;
+		m->iter.active = MBEW_TRUE;
+		m->iter.flags = flags;
 	}
 
-	while((e = nestegg_read_packet(mbew->ne, &mbew->iter.packet)) > 0) {
+	while((e = nestegg_read_packet(m->ne, &m->iter.packet)) > 0) {
 		mbew_num_t track = 0;
 		mbew_num_t count = 0;
 		mbew_ns_t duration = 0;
 
 		int type;
 
-		if(nestegg_packet_track(mbew->iter.packet, &track)) MBEW_RETURN(PACKET_TRACK);
-		if(nestegg_packet_count(mbew->iter.packet, &count)) MBEW_RETURN(PACKET_COUNT);
-		if(nestegg_packet_tstamp(mbew->iter.packet, &mbew->iter.timestamp)) MBEW_RETURN(PACKET_TSTAMP);
+		if(nestegg_packet_track(m->iter.packet, &track)) MBEW_RETURN(PACKET_TRACK);
+		if(nestegg_packet_count(m->iter.packet, &count)) MBEW_RETURN(PACKET_COUNT);
+		if(nestegg_packet_tstamp(m->iter.packet, &m->iter.timestamp)) MBEW_RETURN(PACKET_TSTAMP);
 
 		/* TODO: Why does the following code ALWAYS fail?
 		if(nestegg_packet_duration(packet.ne, &packet.duration)) MBEW_RETURN(PACKET_DURATION); */
 
-		nestegg_packet_duration(mbew->iter.packet, &duration);
+		nestegg_packet_duration(m->iter.packet, &duration);
 
-		type = nestegg_track_type(mbew->ne, track);
+		type = nestegg_track_type(m->ne, track);
 
 		if(type == NESTEGG_TRACK_VIDEO && !(flags & MBEW_ITER_AUDIO_ONLY)) {
 			mbew_bytes_t data = NULL;
@@ -64,42 +67,42 @@ mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_num_t flags) {
 			vpx_image_t* img = NULL;
 
 			/* TODO: Handle the case where there are multiples. */
-			if(count > 1) MBEW_RETURN(TODO);
+			if(count > 1) MBEW_RETURN(NOT_IMPLEMENTED);
 
 			memset(&info, 0, sizeof(vpx_codec_stream_info_t));
 
 			info.sz = sizeof(vpx_codec_stream_info_t);
 
 			/* Get a data pointer to the corresponding "data chunk." */
-			if(nestegg_packet_data(mbew->iter.packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
+			if(nestegg_packet_data(m->iter.packet, 0, &data, &length)) MBEW_RETURN(PACKET_DATA);
 
-			vpx_codec_peek_stream_info(mbew->video.iface, data, length, &info);
+			vpx_codec_peek_stream_info(m->video.iface, data, length, &info);
 
-			if(vpx_codec_decode(&mbew->video.codec, data, length, NULL, 0)) MBEW_RETURN(VPX_DECODE);
+			if(vpx_codec_decode(&m->video.codec, data, length, NULL, 0)) MBEW_RETURN(VPX_DECODE);
 
 			/* Assume there is only one frame.
 			 * TODO: Handle the case where there are multiples frames-in-frame. */
-			if((img = vpx_codec_get_frame(&mbew->video.codec, &codec_iter))) {
+			if((img = vpx_codec_get_frame(&m->video.codec, &codec_iter))) {
 				/* TODO: Handle the case where the img->d_w and img->d_h are different from the
 				 * value detected in the video.params struture. */
-				if(flags & MBEW_ITER_FORMAT_RGB) mbew_format_rgb(img, mbew->video.data.rgb);
+				if(flags & MBEW_ITER_FORMAT_RGB) mbew_format_rgb(img, m->video.data.rgb);
 
 				/* Otherwise, leave the YUV420 data unmolested. */
 				else {
-					mbew->video.data.yuv.planes = img->planes;
-					mbew->video.data.yuv.stride = (mbew_num_t*)(img->stride);
+					m->video.data.yuv.planes = img->planes;
+					m->video.data.yuv.stride = (mbew_num_t*)(img->stride);
 				}
 			}
 
 			else MBEW_RETURN(GET_FRAME);
 
-			mbew->iter.type = MBEW_DATA_VIDEO;
+			m->iter.type = MBEW_DATA_VIDEO;
 
 			break;
 		}
 
 		else if(type == NESTEGG_TRACK_AUDIO && !(flags & MBEW_ITER_VIDEO_ONLY)) {
-			mbew->iter.type = MBEW_DATA_AUDIO;
+			m->iter.type = MBEW_DATA_AUDIO;
 
 			break;
 		}
@@ -107,7 +110,7 @@ mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_num_t flags) {
 
 	/* If 0 was returned, we've reached the end of the stream. */
 	if(!e) {
-		mbew_iter_reset(mbew);
+		mbew_iter_reset(m);
 
 		return MBEW_FALSE;
 	}
@@ -115,47 +118,57 @@ mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_num_t flags) {
 	/* Anything else indicates an error occurred. */
 	else if(e < 0) MBEW_RETURN(PACKET_READ);
 
-	nestegg_free_packet(mbew->iter.packet);
+	nestegg_free_packet(m->iter.packet);
 
-	mbew->iter.packet = NULL;
-	mbew->iter.index++;
+	m->iter.packet = NULL;
+	m->iter.index++;
 
 	return MBEW_TRUE;
 }
 
-mbew_bool_t mbew_iter_active(mbew_t* mbew) {
-	return mbew->iter.active;
+mbew_bool_t mbew_iter_active(mbew_t m) {
+	return m->iter.active;
 }
 
-mbew_data_t mbew_iter_type(mbew_t* mbew) {
-	return mbew->iter.type;
+mbew_data_t mbew_iter_type(mbew_t m) {
+	return m->iter.type;
 }
 
-mbew_num_t mbew_iter_index(mbew_t* mbew) {
-	return mbew->iter.index;
+mbew_num_t mbew_iter_index(mbew_t m) {
+	return m->iter.index;
 }
 
-mbew_ns_t mbew_iter_timestamp(mbew_t* mbew) {
-	return mbew->iter.timestamp;
+mbew_ns_t mbew_iter_timestamp(mbew_t m) {
+	return m->iter.timestamp;
 }
 
-mbew_bool_t mbew_iter_sync(mbew_t* mbew, mbew_ns_t elapsed) {
-	if(!mbew->iter.active) return MBEW_FALSE;
+mbew_bool_t mbew_iter_sync(mbew_t m, mbew_ns_t elapsed) {
+	if(!m->iter.active || !(m->iter.flags & MBEW_ITER_SYNC)) return MBEW_FALSE;
 
-	mbew->iter.elapsed = elapsed;
+	m->iter.elapsed = elapsed;
 
-	return mbew->iter.elapsed >= mbew->iter.timestamp;
+	return m->iter.elapsed >= m->iter.timestamp;
 }
 
-mbew_bytes_t mbew_iter_video_rgb(mbew_t* mbew) {
-	return mbew->video.data.rgb;
+mbew_ns_t mbew_iter_next(mbew_t m) {
+	if(
+		!m->iter.active ||
+		!(m->iter.flags & MBEW_ITER_SYNC) ||
+		(m->iter.elapsed > m->iter.timestamp)
+	) return 0;
+
+	return m->iter.timestamp - m->iter.elapsed;
 }
 
-mbew_bytes_t* mbew_iter_video_yuv_planes(mbew_t* mbew) {
-	return mbew->video.data.yuv.planes;
+mbew_bytes_t mbew_iter_video_rgb(mbew_t m) {
+	return m->video.data.rgb;
 }
 
-mbew_num_t* mbew_iter_video_yuv_stride(mbew_t* mbew) {
-	return mbew->video.data.yuv.stride;
+mbew_bytes_t* mbew_iter_video_yuv_planes(mbew_t m) {
+	return m->video.data.yuv.planes;
+}
+
+mbew_num_t* mbew_iter_video_yuv_stride(mbew_t m) {
+	return m->video.data.yuv.stride;
 }
 

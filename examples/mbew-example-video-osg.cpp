@@ -12,8 +12,8 @@
 
 class MBEWUpdateCallback: public osg::Drawable::UpdateCallback {
 public:
-	MBEWUpdateCallback(mbew_t* mbew, mbew_num_t width, mbew_num_t height):
-	_mbew(mbew),
+	MBEWUpdateCallback(mbew_t m, mbew_num_t width, mbew_num_t height):
+	_m(m),
 	_width(width),
 	_height(height) {
 	}
@@ -23,8 +23,8 @@ public:
 
 		if(!image) return;
 
-		if(mbew_iterate(_mbew, MBEW_ITER_VIDEO_ONLY | MBEW_ITER_FORMAT_RGB | MBEW_ITER_SYNC)) {
-			if(!mbew_iter_sync(_mbew, _time.elapsedTime_n())) return;
+		if(mbew_iterate(_m, MBEW_ITER_VIDEO_ONLY | MBEW_ITER_FORMAT_RGB | MBEW_ITER_SYNC)) {
+			if(!mbew_iter_sync(_m, _time.elapsedTime_n())) return;
 
 			image->setImage(
 				_width,
@@ -33,7 +33,7 @@ public:
 				GL_RGBA,
 				GL_BGRA,
 				GL_UNSIGNED_BYTE,
-				static_cast<unsigned char*>(mbew_iter_video_rgb(_mbew)),
+				static_cast<unsigned char*>(mbew_iter_video_rgb(_m)),
 				osg::Image::NO_DELETE
 			);
 
@@ -41,7 +41,7 @@ public:
 		}
 
 		else {
-			mbew_reset(_mbew);
+			mbew_reset(_m);
 
 			_time.reset();
 		}
@@ -70,7 +70,7 @@ protected:
 
 
 private:
-	mbew_t* _mbew;
+	mbew_t _m;
 	mbew_num_t _width;
 	mbew_num_t _height;
 
@@ -80,24 +80,24 @@ private:
 int main(int argc, char** argv) {
 	osgViewer::Viewer viewer;
 
-	mbew_t* mbew = mbew_create(MBEW_SRC_FILE, argv[1]);
+	mbew_t m = mbew_create(MBEW_SRC_FILE, argv[1]);
 	mbew_status_t status;
 
-	if((status = mbew_status(mbew))) {
+	if((status = mbew_status(m))) {
 		std::cout << "Error opening context: " << argv[1] << std::endl;
 		std::cout << "Status was: " << mbew_string(MBEW_TYPE_STATUS, status) << std::endl;
 
 		return 1;
 	}
 
-	if(!mbew_property(mbew, MBEW_PROP_VIDEO).b) {
+	if(!mbew_property(m, MBEW_PROP_VIDEO).b) {
 		std::cout << "File contains no video." << std::endl;
 
 		return 1;
 	}
 
-	mbew_num_t width = mbew_property(mbew, MBEW_PROP_VIDEO_WIDTH).num;
-	mbew_num_t height = mbew_property(mbew, MBEW_PROP_VIDEO_HEIGHT).num;
+	mbew_num_t width = mbew_property(m, MBEW_PROP_VIDEO_WIDTH).num;
+	mbew_num_t height = mbew_property(m, MBEW_PROP_VIDEO_HEIGHT).num;
 
 	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 	state->setMode(GL_BLEND, osg::StateAttribute::ON);
 	state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
-	geom->setUpdateCallback(new MBEWUpdateCallback(mbew, width, height));
+	geom->setUpdateCallback(new MBEWUpdateCallback(m, width, height));
 
 	geode->addDrawable(geom);
 
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
 
 	int r = viewer.run();
 
-	mbew_destroy(mbew);
+	mbew_destroy(m);
 
 	return r;
 }

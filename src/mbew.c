@@ -16,41 +16,41 @@ static void mbew_log(nestegg* ne, mbew_num_t severity, const char* format, ...) 
 #endif
 }
 
-#define MBEW_RETURN(st) { mbew->status = MBEW_STATUS_##st; return mbew; }
+#define MBEW_RETURN(st) { m->status = MBEW_STATUS_##st; return m; }
 
-mbew_t* mbew_create(mbew_src_t src, ...) {
-	mbew_t* mbew = (mbew_t*)(calloc(1, sizeof(mbew_t)));
+mbew_t mbew_create(mbew_src_t src, ...) {
+	mbew_t m = (mbew_t)(calloc(1, sizeof(struct _mbew_t)));
 
 	mbew_num_t i;
 
 	va_list args;
 
 	/* If calloc() fails for some reason, return NULL. */
-	if(!mbew) return NULL;
+	if(!m) return NULL;
 
 	va_start(args, src);
 
 	/* mbew_src_create() will properly set the error status, if any. */
-	if(!mbew_src_create(src, mbew, args)) return NULL;
+	if(!mbew_src_create(src, m, args)) return NULL;
 
 	va_end(args);
 
 	/* Regardless of the src, begin calling the "common" setup routines. */
-	if(nestegg_init(&mbew->ne, mbew->ne_io, mbew_log, -1)) MBEW_RETURN(INIT_IO);
-	if(nestegg_duration(mbew->ne, &mbew->duration)) MBEW_RETURN(DURATION);
-	if(nestegg_tstamp_scale(mbew->ne, &mbew->scale)) MBEW_RETURN(SCALE);
-	if(nestegg_track_count(mbew->ne, &mbew->tracks)) MBEW_RETURN(TRACK_COUNT);
+	if(nestegg_init(&m->ne, m->ne_io, mbew_log, -1)) MBEW_RETURN(INIT_IO);
+	if(nestegg_duration(m->ne, &m->duration)) MBEW_RETURN(DURATION);
+	if(nestegg_tstamp_scale(m->ne, &m->scale)) MBEW_RETURN(SCALE);
+	if(nestegg_track_count(m->ne, &m->tracks)) MBEW_RETURN(TRACK_COUNT);
 
 	/* Iterate through all the tracks, latching on to the first audio and video streams found. */
-	for(i = 0; i < mbew->tracks; i++) {
+	for(i = 0; i < m->tracks; i++) {
 		mbew_track_t* track = NULL;
 
-		int type = nestegg_track_type(mbew->ne, i);
-		int codec = nestegg_track_codec_id(mbew->ne, i);
+		int type = nestegg_track_type(m->ne, i);
+		int codec = nestegg_track_codec_id(m->ne, i);
 
-		if(type == NESTEGG_TRACK_VIDEO) track = &mbew->video.track;
+		if(type == NESTEGG_TRACK_VIDEO) track = &m->video.track;
 
-		else if(type == NESTEGG_TRACK_AUDIO) track = &mbew->audio.track;
+		else if(type == NESTEGG_TRACK_AUDIO) track = &m->audio.track;
 
 		else MBEW_RETURN(UNKNOWN_TRACK);
 
@@ -65,86 +65,86 @@ mbew_t* mbew_create(mbew_src_t src, ...) {
 		track->init = 1;
 
 		if(type == NESTEGG_TRACK_VIDEO) {
-			mbew->video.iface = codec == NESTEGG_CODEC_VP9 ?
+			m->video.iface = codec == NESTEGG_CODEC_VP9 ?
 				&vpx_codec_vp9_dx_algo :
 				&vpx_codec_vp8_dx_algo
 			;
 
 			if(vpx_codec_dec_init(
-				&mbew->video.codec,
-				mbew->video.iface,
+				&m->video.codec,
+				m->video.iface,
 				NULL,
-				mbew->flags
+				m->flags
 			)) MBEW_RETURN(INIT_CODEC);
 
 			if(nestegg_track_video_params(
-				mbew->ne,
+				m->ne,
 				i,
-				&mbew->video.params
+				&m->video.params
 			)) MBEW_RETURN(PARAMS_VIDEO);
 		}
 
 		/* The if/else if/else above will make sure we're either audio or video; never unknown. */
 		else {
 			if(nestegg_track_audio_params(
-				mbew->ne,
+				m->ne,
 				i,
-				&mbew->audio.params
+				&m->audio.params
 			)) MBEW_RETURN(PARAMS_AUDIO);
 		}
 	}
 
-	return mbew;
+	return m;
 }
 
-void mbew_destroy(mbew_t* mbew) {
-	if(mbew->video.track.init) vpx_codec_destroy(&mbew->video.codec);
-	if(mbew->video.data.rgb) free(mbew->video.data.rgb);
-	if(mbew->ne) nestegg_destroy(mbew->ne);
+void mbew_destroy(mbew_t m) {
+	if(m->iter.active) return;
 
-	mbew_iter_reset(mbew);
-	mbew_src_destroy(mbew);
+	if(m->video.track.init) vpx_codec_destroy(&m->video.codec);
+	if(m->video.data.rgb) free(m->video.data.rgb);
+	if(m->ne) nestegg_destroy(m->ne);
 
-	free(mbew);
+	mbew_iter_reset(m);
+	mbew_src_destroy(m);
+
+	free(m);
 }
 
-#define BOOL_RETURN(st) { mbew->status = MBEW_STATUS_##st; return MBEW_FALSE; }
+#define BOOL_RETURN(st) { m->status = MBEW_STATUS_##st; return MBEW_FALSE; }
 
-mbew_bool_t mbew_reset(mbew_t* mbew) {
-	if(mbew->iter.active) BOOL_RETURN(ITER_BUSY);
-
-	if(nestegg_offset_seek(mbew->ne, 0)) BOOL_RETURN(SEEK_OFFSET);
+mbew_bool_t mbew_reset(mbew_t m) {
+	if(nestegg_offset_seek(m->ne, 0)) BOOL_RETURN(SEEK_OFFSET);
 
 	if(
-		mbew->video.track.init &&
-		nestegg_track_seek(mbew->ne, mbew->video.track.index, 0)
+		m->video.track.init &&
+		nestegg_track_seek(m->ne, m->video.track.index, 0)
 	) BOOL_RETURN(SEEK_VIDEO);
 
 	/* TODO: This is always failing! */
 	/* if(
-		mbew->audio.track.init &&
-		nestegg_track_seek(mbew->ne, mbew->audio.track.index, 0)
+		m->audio.track.init &&
+		nestegg_track_seek(m->ne, m->audio.track.index, 0)
 	) BOOL_RETURN(SEEK_AUDIO); */
 
-	mbew_iter_reset(mbew);
+	mbew_iter_reset(m);
 
 	return MBEW_TRUE;
 }
 
-mbew_status_t mbew_status(mbew_t* mbew) {
-	return !mbew ? MBEW_STATUS_NULL : mbew->status;
+mbew_status_t mbew_status(mbew_t m) {
+	return !m ? MBEW_STATUS_NULL : m->status;
 }
 
-#define CASE_PROPERTY(prop, ty, attr) case MBEW_PROP_##prop: r.ty = mbew->attr; break
+#define CASE_PROPERTY(prop, ty, attr) case MBEW_PROP_##prop: r.ty = m->attr; break
 
-mbew_prop_val_t mbew_property(mbew_t* mbew, ...) {
+mbew_prop_val_t mbew_property(mbew_t m, ...) {
 	mbew_prop_val_t r = { 0 };
 	mbew_prop_t prop;
 
 	va_list arg_enum;
 	va_list arg_str;
 
-	va_start(arg_enum, mbew);
+	va_start(arg_enum, m);
 	va_copy(arg_str, arg_enum);
 
 	prop = va_arg(arg_enum, mbew_prop_t);
@@ -179,18 +179,11 @@ mbew_prop_val_t mbew_property(mbew_t* mbew, ...) {
 	return r;
 }
 
-void mbew_properties(mbew_t* mbew, ...) {
-	/* TODO: Handle a variable number of properties, followed by pointers to be filled with the
-	 * corresponding values. */
-}
-
 static const char* MBEW_TYPE_STRINGS[] = {
 	"MBEW_FALSE",
 	"MBEW_TRUE",
-
 	"MBEW_SRC_FILE",
 	"MBEW_SRC_MEMORY",
-
 	"MBEW_STATUS_SUCCESS",
 	"MBEW_STATUS_NULL",
 	"MBEW_STATUS_SRC_FILE",
@@ -214,10 +207,8 @@ static const char* MBEW_TYPE_STRINGS[] = {
 	"MBEW_STATUS_SEEK_OFFSET",
 	"MBEW_STATUS_SEEK_VIDEO",
 	"MBEW_STATUS_SEEK_AUDIO",
-	"MBEW_STATUS_ITER_BUSY",
 	"MBEW_STATUS_TODO",
 	"MBEW_STATUS_NOT_IMPLEMENTED",
-
 	"MBEW_PROP_DURATION",
 	"MBEW_PROP_SCALE",
 	"MBEW_PROP_TRACKS",
@@ -230,24 +221,29 @@ static const char* MBEW_TYPE_STRINGS[] = {
 	"MBEW_PROP_AUDIO_RATE",
 	"MBEW_PROP_AUDIO_CHANNELS",
 	"MBEW_PROP_AUDIO_DEPTH",
-
 	"MBEW_DATA_NONE",
 	"MBEW_DATA_VIDEO",
-	"MBEW_DATA_AUDIO"
+	"MBEW_DATA_AUDIO",
+	"MBEW_CODEC_VP8",
+	"MBEW_CODEC_VORBIS",
+	"MBEW_CODEC_VP9",
+	"MBEW_CODEC_OPUS"
 };
 
 #define OFFSET_BOOL 0
 #define OFFSET_SRC 2
 #define OFFSET_STATUS 4
-#define OFFSET_PROP 30
-#define OFFSET_DATA 42
-#define OFFSET_MAX 45
+#define OFFSET_PROP 29
+#define OFFSET_DATA 41
+#define OFFSET_CODEC 45
+#define OFFSET_MAX 48
 
 #define VAL_BOOL 2
 #define VAL_SRC 2
-#define VAL_STATUS 25
+#define VAL_STATUS 24
 #define VAL_PROP 12
 #define VAL_DATA 3
+#define VAL_CODEC 4
 
 #define CASE_TYPE(ty) case MBEW_TYPE_##ty: if(val < VAL_##ty) { offset = OFFSET_##ty; } break
 
@@ -267,6 +263,7 @@ const char* mbew_string(mbew_type_t type, ...) {
 		CASE_TYPE(STATUS);
 		CASE_TYPE(PROP);
 		CASE_TYPE(DATA);
+		CASE_TYPE(CODEC);
 
 		default:
 			break;

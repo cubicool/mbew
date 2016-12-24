@@ -75,12 +75,12 @@ struct _mbew_t {
 	mbew_iter_t iter;
 };
 
-mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t* mbew, va_list args);
-void mbew_src_destroy(mbew_t* mbew);
+mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t m, va_list args);
+void mbew_src_destroy(mbew_t m);
 
 void mbew_format_rgb(vpx_image_t* img, uint8_t* dest);
 
-void mbew_iter_reset(mbew_t* mbew);
+void mbew_iter_reset(mbew_t m);
 
 #endif
 

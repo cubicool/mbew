@@ -30,22 +30,22 @@ static nestegg_io MBEW_IO_FILE = {
 	NULL
 };
 
-static mbew_bool_t mbew_src_file_create(mbew_t* mbew, va_list args) {
+static mbew_bool_t mbew_src_file_create(mbew_t m, va_list args) {
 	const char* path = va_arg(args, const char*);
 
 	if(!path) return MBEW_FALSE;
 
-	memcpy(&mbew->ne_io, &MBEW_IO_FILE, sizeof(nestegg_io));
+	memcpy(&m->ne_io, &MBEW_IO_FILE, sizeof(nestegg_io));
 
-	mbew->ne_io.userdata = fopen(path, "rb");
+	m->ne_io.userdata = fopen(path, "rb");
 
-	if(!mbew->ne_io.userdata) return MBEW_FALSE;
+	if(!m->ne_io.userdata) return MBEW_FALSE;
 
 	return MBEW_TRUE;
 }
 
-static void mbew_src_file_destroy(mbew_t* mbew) {
-	if(mbew->ne_io.userdata) fclose(mbew->ne_io.userdata);
+static void mbew_src_file_destroy(mbew_t m) {
+	if(m->ne_io.userdata) fclose(m->ne_io.userdata);
 }
 
 typedef struct _mbew_memory_t {
@@ -91,7 +91,7 @@ static nestegg_io MBEW_IO_MEMORY = {
 	NULL
 };
 
-static mbew_bool_t mbew_src_memory_create(mbew_t* mbew, va_list args) {
+static mbew_bool_t mbew_src_memory_create(mbew_t m, va_list args) {
 	mbew_memory_t* mem = (mbew_memory_t*)(calloc(1, sizeof(mbew_memory_t)));
 
 	if(!mem) return MBEW_FALSE;
@@ -102,33 +102,33 @@ static mbew_bool_t mbew_src_memory_create(mbew_t* mbew, va_list args) {
 
 	if(!mem->data || mem->size <= 0) return MBEW_FALSE;
 
-	memcpy(&mbew->ne_io, &MBEW_IO_MEMORY, sizeof(nestegg_io));
+	memcpy(&m->ne_io, &MBEW_IO_MEMORY, sizeof(nestegg_io));
 
-	mbew->ne_io.userdata = mem;
+	m->ne_io.userdata = mem;
 
 	return MBEW_TRUE;
 }
 
-static void mbew_src_memory_destroy(mbew_t* mbew) {
+static void mbew_src_memory_destroy(mbew_t m) {
 }
 
-mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t* mbew, va_list args) {
+mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t m, va_list args) {
 	if(
 		src == MBEW_SRC_FILE &&
-		!mbew_src_file_create(mbew, args)
-	) mbew->status = MBEW_STATUS_SRC_FILE;
+		!mbew_src_file_create(m, args)
+	) m->status = MBEW_STATUS_SRC_FILE;
 
 	else if(
 		src == MBEW_SRC_MEMORY &&
-		!mbew_src_memory_create(mbew, args)
-	) mbew->status = MBEW_STATUS_SRC_MEMORY;
+		!mbew_src_memory_create(m, args)
+	) m->status = MBEW_STATUS_SRC_MEMORY;
 
-	return !mbew->status;
+	return !m->status;
 }
 
-void mbew_src_destroy(mbew_t* mbew) {
-	if(mbew->src == MBEW_SRC_FILE) mbew_src_file_destroy(mbew);
+void mbew_src_destroy(mbew_t m) {
+	if(m->src == MBEW_SRC_FILE) mbew_src_file_destroy(m);
 
-	else if(mbew->src == MBEW_SRC_MEMORY) mbew_src_memory_destroy(mbew);
+	else if(m->src == MBEW_SRC_MEMORY) mbew_src_memory_destroy(m);
 }
 

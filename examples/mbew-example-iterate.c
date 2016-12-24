@@ -3,14 +3,14 @@
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-	mbew_t* mbew = mbew_create(MBEW_SRC_FILE, argv[1]);
+	mbew_t m = mbew_create(MBEW_SRC_FILE, argv[1]);
 	mbew_status_t status;
 
-	if(!(status = mbew_status(mbew))) {
-		while(mbew_iterate(mbew, 0)) {
-			mbew_num_t index = mbew_iter_index(mbew);
-			mbew_data_t type = mbew_iter_type(mbew);
-			mbew_ns_t timestamp = mbew_iter_timestamp(mbew);
+	if(!(status = mbew_status(m))) {
+		while(mbew_iterate(m, 0)) {
+			mbew_num_t index = mbew_iter_index(m);
+			mbew_data_t type = mbew_iter_type(m);
+			mbew_ns_t timestamp = mbew_iter_timestamp(m);
 
 			printf(
 				"index=%03u type=%s timestamp=%4.2fs\n",
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
 	else printf("Error creating context (%s)\n", mbew_string(MBEW_TYPE_STATUS, status));
 
-	mbew_destroy(mbew);
+	mbew_destroy(m);
 
 	return 0;
 }

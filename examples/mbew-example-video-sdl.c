@@ -4,23 +4,23 @@
 
 /* Return MBEW_TRUE if the video plays through in its entirety and MBEW_FALSE if ESC is pressed to
  * interrupt the application. */
-mbew_bool_t play_video(mbew_t* mbew, SDL_Overlay* overlay, SDL_Rect* rect) {
+mbew_bool_t play_video(mbew_t m, SDL_Overlay* overlay, SDL_Rect* rect) {
 	mbew_num_t start = SDL_GetTicks();
 
 	printf("Starting at: %ums\n", start);
 
-	while(mbew_iterate(mbew, MBEW_ITER_VIDEO_ONLY)) {
+	while(mbew_iterate(m, MBEW_ITER_VIDEO_ONLY)) {
 		SDL_Event event;
 
 		mbew_num_t now = SDL_GetTicks() - start;
-		mbew_num_t timestamp = mbew_iter_timestamp(mbew) / 1000000;
-		mbew_bytes_t* planes = mbew_iter_video_yuv_planes(mbew);
-		mbew_num_t* stride = mbew_iter_video_yuv_stride(mbew);
+		mbew_num_t timestamp = mbew_iter_timestamp(m) / 1000000;
+		mbew_bytes_t* planes = mbew_iter_video_yuv_planes(m);
+		mbew_num_t* stride = mbew_iter_video_yuv_stride(m);
 		mbew_num_t y;
 
 		printf(
 			"Index=%u Time(now)=%ums Time(frame)=%ums ",
-			mbew_iter_index(mbew),
+			mbew_iter_index(m),
 			now,
 			timestamp
 		);
@@ -65,12 +65,12 @@ mbew_bool_t play_video(mbew_t* mbew, SDL_Overlay* overlay, SDL_Rect* rect) {
 }
 
 int main(int argc, char** argv) {
-	mbew_t* mbew = mbew_create(MBEW_SRC_FILE, argv[1]);
+	mbew_t m = mbew_create(MBEW_SRC_FILE, argv[1]);
 	mbew_status_t status;
 
-	if(!(status = mbew_status(mbew))) {
-		mbew_num_t width = mbew_property(mbew, MBEW_PROP_VIDEO_WIDTH).num;
-		mbew_num_t height = mbew_property(mbew, MBEW_PROP_VIDEO_HEIGHT).num;
+	if(!(status = mbew_status(m))) {
+		mbew_num_t width = mbew_property(m, MBEW_PROP_VIDEO_WIDTH).num;
+		mbew_num_t height = mbew_property(m, MBEW_PROP_VIDEO_HEIGHT).num;
 
 		SDL_Surface* surface = NULL;
 		SDL_Overlay* overlay = NULL;
@@ -86,11 +86,11 @@ int main(int argc, char** argv) {
 		rect.w = width;
 		rect.h = height;
 
-		while(play_video(mbew, overlay, &rect)) {
+		while(play_video(m, overlay, &rect)) {
 			printf("Finished a single playthrough; resetting.\n");
 
-			if(!mbew_reset(mbew)) {
-				printf("Couldn't reset: %s\n", mbew_string(MBEW_TYPE_STATUS, mbew_status(mbew)));
+			if(!mbew_reset(m)) {
+				printf("Couldn't reset: %s\n", mbew_string(MBEW_TYPE_STATUS, mbew_status(m)));
 
 				break;
 			}
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 
 	else printf("Error creating context (%s)\n", mbew_string(MBEW_TYPE_STATUS, status));
 
-	mbew_destroy(mbew);
+	mbew_destroy(m);
 
 	return 0;
 }
