@@ -18,7 +18,7 @@ while(mbew_iterate(m, MBEW_ITER_FORMAT_RGB)) {
 
     mbew_bytes_t rgb = mbew_iter_video_rgb(m);
 
-    /* ... */
+    /* DO STUFF! */
 }
 
 mbew_destroy(m);
