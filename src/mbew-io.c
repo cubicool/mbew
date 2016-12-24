@@ -23,7 +23,7 @@ static int64_t mbew_file_tell(void* userdata) {
 	return ftell((FILE*)(userdata));
 }
 
-static nestegg_io mbew_file_io = {
+static nestegg_io MBEW_IO_FILE = {
 	mbew_file_read,
 	mbew_file_seek,
 	mbew_file_tell,
@@ -35,7 +35,7 @@ static mbew_bool_t mbew_src_file_create(mbew_t* mbew, va_list args) {
 
 	if(!path) return MBEW_FALSE;
 
-	memcpy(&mbew->ne_io, &mbew_file_io, sizeof(nestegg_io));
+	memcpy(&mbew->ne_io, &MBEW_IO_FILE, sizeof(nestegg_io));
 
 	mbew->ne_io.userdata = fopen(path, "rb");
 
@@ -84,7 +84,7 @@ static int64_t mbew_memory_tell(void* userdata) {
 	return mem->pos;
 }
 
-static nestegg_io mbew_memory_io = {
+static nestegg_io MBEW_IO_MEMORY = {
 	mbew_memory_read,
 	mbew_memory_seek,
 	mbew_memory_tell,
@@ -102,7 +102,7 @@ static mbew_bool_t mbew_src_memory_create(mbew_t* mbew, va_list args) {
 
 	if(!mem->data || mem->size <= 0) return MBEW_FALSE;
 
-	memcpy(&mbew->ne_io, &mbew_memory_io, sizeof(nestegg_io));
+	memcpy(&mbew->ne_io, &MBEW_IO_MEMORY, sizeof(nestegg_io));
 
 	mbew->ne_io.userdata = mem;
 

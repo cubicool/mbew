@@ -28,9 +28,32 @@ typedef struct _mbew_video_t {
 
 	vpx_codec_iface_t* iface;
 	vpx_codec_ctx_t codec;
+
+	struct {
+		struct {
+			mbew_bytes_t* planes;
+			mbew_num_t* stride;
+		} yuv;
+
+		mbew_bytes_t rgb;
+	} data;
 } mbew_video_t;
 
+typedef struct _mbew_iter_t {
+	nestegg_packet* packet;
+
+	mbew_bool_t active;
+	mbew_data_t type;
+	mbew_num_t flags;
+	mbew_num_t index;
+	mbew_ns_t timestamp;
+	mbew_ns_t elapsed;
+} mbew_iter_t;
+
 struct _mbew_t {
+	nestegg* ne;
+	nestegg_io ne_io;
+
 	mbew_src_t src;
 	mbew_status_t status;
 
@@ -48,24 +71,16 @@ struct _mbew_t {
 	mbew_audio_t audio;
 	mbew_video_t video;
 
-	nestegg* ne;
-	nestegg_io ne_io;
-};
-
-struct _mbew_iter_t {
-	nestegg_packet* packet;
-
-	mbew_num_t index;
-	mbew_ns_t timestamp;
-	mbew_data_t type;
-	mbew_data_video_t video;
-	mbew_data_audio_t audio;
+	/* Used heavily during mbew_iterate(). */
+	mbew_iter_t iter;
 };
 
 mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t* mbew, va_list args);
 void mbew_src_destroy(mbew_t* mbew);
 
 void mbew_format_rgb(vpx_image_t* img, uint8_t* dest);
+
+void mbew_iter_reset(mbew_t* mbew);
 
 #endif
 

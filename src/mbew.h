@@ -27,6 +27,11 @@ typedef enum _mbew_bool_t {
 	MBEW_TRUE
 } mbew_bool_t;
 
+typedef uint64_t mbew_ns_t;
+typedef unsigned int mbew_num_t;
+typedef double mbew_hz_t;
+typedef unsigned char* mbew_bytes_t;
+
 typedef enum _mbew_src_t {
 	/* Reads a WebM file from disk using the traditional fopen/fclose/etc. interface. A single
 	 * argument is passed to mbew_create(), which is the path to file to be opened. */
@@ -43,8 +48,6 @@ MBEW_API mbew_t* mbew_create(mbew_src_t src, ...);
 /* Destroys a previously created context. */
 MBEW_API void mbew_destroy(mbew_t* mbew);
 
-/* TODO: Create some mechanism by which any mbew_iter_t instances bound to this stream are aware of
- * resets as they occur. */
 MBEW_API mbew_bool_t mbew_reset(mbew_t* mbew);
 
 typedef enum _mbew_status_t {
@@ -71,16 +74,13 @@ typedef enum _mbew_status_t {
 	MBEW_STATUS_SEEK_OFFSET,
 	MBEW_STATUS_SEEK_VIDEO,
 	MBEW_STATUS_SEEK_AUDIO,
+	MBEW_STATUS_ITER_BUSY,
 	MBEW_STATUS_TODO,
 	MBEW_STATUS_NOT_IMPLEMENTED
 } mbew_status_t;
 
 /* Returns the most recent status associated with the given context. */
 MBEW_API mbew_status_t mbew_status(mbew_t* mbew);
-
-typedef uint64_t mbew_ns_t;
-typedef unsigned int mbew_num_t;
-typedef double mbew_hz_t;
 
 typedef enum _mbew_prop_t {
 	/* The stream duration in nanoseconds.
@@ -170,45 +170,28 @@ typedef enum _mbew_type_t {
 MBEW_API const char* mbew_string(mbew_type_t type, ...);
 
 typedef enum _mbew_data_t {
+	MBEW_DATA_NONE,
 	MBEW_DATA_VIDEO,
 	MBEW_DATA_AUDIO
 } mbew_data_t;
 
-typedef struct _mbew_data_video_t {
-	mbew_num_t width;
-	mbew_num_t height;
-
-	struct {
-		void* rgb;
-
-		struct {
-			unsigned char** planes;
-			mbew_num_t* stride;
-			mbew_num_t bps;
-		} yuv;
-	} data;
-} mbew_data_video_t;
-
-typedef struct _mbew_data_audio_t {
-	void* data;
-} mbew_data_audio_t;
-
-typedef struct _mbew_iter_t mbew_iter_t;
-
 typedef enum _mbew_iter_bit_t {
 	MBEW_ITER_VIDEO_ONLY = (1 << 0),
 	MBEW_ITER_AUDIO_ONLY = (1 << 1),
-	MBEW_ITER_FORMAT_RGB = (1 << 2)
+	MBEW_ITER_SYNC = (1 << 2),
+	MBEW_ITER_FORMAT_RGB = (1 << 3)
 } mbew_iter_bit_t;
 
-MBEW_API mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_iter_t** iter, mbew_num_t flags);
+MBEW_API mbew_bool_t mbew_iterate(mbew_t* mbew, mbew_num_t flags);
 
-MBEW_API mbew_num_t mbew_iter_index(mbew_iter_t* iter);
-MBEW_API mbew_ns_t mbew_iter_timestamp(mbew_iter_t* iter);
-MBEW_API mbew_data_t mbew_iter_type(mbew_iter_t* iter);
-MBEW_API mbew_data_video_t* mbew_iter_video(mbew_iter_t* iter);
-MBEW_API mbew_data_audio_t* mbew_iter_audio(mbew_iter_t* iter);
-MBEW_API void mbew_iter_destroy(mbew_iter_t* iter);
+MBEW_API mbew_bool_t mbew_iter_active(mbew_t* mbew);
+MBEW_API mbew_data_t mbew_iter_type(mbew_t* mbew);
+MBEW_API mbew_num_t mbew_iter_index(mbew_t* mbew);
+MBEW_API mbew_ns_t mbew_iter_timestamp(mbew_t* mbew);
+MBEW_API mbew_bool_t mbew_iter_sync(mbew_t* mbew, mbew_ns_t elapsed);
+MBEW_API mbew_bytes_t mbew_iter_video_rgb(mbew_t* mbew);
+MBEW_API mbew_bytes_t* mbew_iter_video_yuv_planes(mbew_t* mbew);
+MBEW_API mbew_num_t* mbew_iter_video_yuv_stride(mbew_t* mbew);
 
 MBEW_API_END
 

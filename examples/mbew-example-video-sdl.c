@@ -4,58 +4,57 @@
 
 /* Return MBEW_TRUE if the video plays through in its entirety and MBEW_FALSE if ESC is pressed to
  * interrupt the application. */
-mbew_bool_t play_video(mbew_t* mbew, mbew_iter_t** iter, SDL_Overlay* overlay, SDL_Rect* rect) {
+mbew_bool_t play_video(mbew_t* mbew, SDL_Overlay* overlay, SDL_Rect* rect) {
 	mbew_num_t start = SDL_GetTicks();
 
 	printf("Starting at: %ums\n", start);
 
-	while(mbew_iterate(mbew, iter, 0)) {
+	while(mbew_iterate(mbew, MBEW_ITER_VIDEO_ONLY)) {
 		SDL_Event event;
 
-		if(mbew_iter_type(*iter) == MBEW_DATA_VIDEO) {
-			mbew_data_video_t* video = mbew_iter_video(*iter);
-			mbew_num_t now = SDL_GetTicks() - start;
-			mbew_num_t timestamp = mbew_iter_timestamp(*iter) / 1000000;
-			mbew_num_t y;
+		mbew_num_t now = SDL_GetTicks() - start;
+		mbew_num_t timestamp = mbew_iter_timestamp(mbew) / 1000000;
+		mbew_bytes_t* planes = mbew_iter_video_yuv_planes(mbew);
+		mbew_num_t* stride = mbew_iter_video_yuv_stride(mbew);
+		mbew_num_t y;
 
-			printf(
-				"Index=%u Time(now)=%ums Time(frame)=%ums ",
-				mbew_iter_index(*iter),
-				now,
-				timestamp
-			);
+		printf(
+			"Index=%u Time(now)=%ums Time(frame)=%ums ",
+			mbew_iter_index(mbew),
+			now,
+			timestamp
+		);
 
-			if(now < timestamp) {
-				printf("[sleeping for: %ums]", timestamp - now);
+		if(now < timestamp) {
+			printf("[sleeping for: %ums]", timestamp - now);
 
-				SDL_Delay(timestamp - now);
-			}
-
-			printf("\n");
-
-			SDL_LockYUVOverlay(overlay);
-
-			for(y = 0; y < video->height; ++y) memcpy(
-				overlay->pixels[0] + (overlay->pitches[0] * y),
-				video->data.yuv.planes[0] + (video->data.yuv.stride[0] * y),
-				overlay->pitches[0]
-			);
-
-			for(y = 0; y < video->height >> 1; ++y) memcpy(
-				overlay->pixels[1] + (overlay->pitches[1] * y),
-				video->data.yuv.planes[2] + (video->data.yuv.stride[2] * y),
-				overlay->pitches[1]
-			);
-
-			for(y = 0; y < video->height >> 1; ++y) memcpy(
-				overlay->pixels[2] + (overlay->pitches[2] * y),
-				video->data.yuv.planes[1] + (video->data.yuv.stride[1] * y),
-				overlay->pitches[2]
-			);
-
-			SDL_UnlockYUVOverlay(overlay);
-			SDL_DisplayYUVOverlay(overlay, rect);
+			SDL_Delay(timestamp - now);
 		}
+
+		printf("\n");
+
+		SDL_LockYUVOverlay(overlay);
+
+		for(y = 0; y < rect->h; ++y) memcpy(
+			overlay->pixels[0] + (overlay->pitches[0] * y),
+			planes[0] + (stride[0] * y),
+			overlay->pitches[0]
+		);
+
+		for(y = 0; y < (rect->h >> 1); ++y) memcpy(
+			overlay->pixels[1] + (overlay->pitches[1] * y),
+			planes[2] + (stride[2] * y),
+			overlay->pitches[1]
+		);
+
+		for(y = 0; y < (rect->h >> 1); ++y) memcpy(
+			overlay->pixels[2] + (overlay->pitches[2] * y),
+			planes[1] + (stride[1] * y),
+			overlay->pitches[2]
+		);
+
+		SDL_UnlockYUVOverlay(overlay);
+		SDL_DisplayYUVOverlay(overlay, rect);
 
 		if(SDL_PollEvent(&event) == 1) {
 			if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) return MBEW_FALSE;
@@ -70,7 +69,6 @@ int main(int argc, char** argv) {
 	mbew_status_t status;
 
 	if(!(status = mbew_status(mbew))) {
-		mbew_iter_t* iter = NULL;
 		mbew_num_t width = mbew_property(mbew, MBEW_PROP_VIDEO_WIDTH).num;
 		mbew_num_t height = mbew_property(mbew, MBEW_PROP_VIDEO_HEIGHT).num;
 
@@ -88,7 +86,7 @@ int main(int argc, char** argv) {
 		rect.w = width;
 		rect.h = height;
 
-		while(play_video(mbew, &iter, overlay, &rect)) {
+		while(play_video(mbew, overlay, &rect)) {
 			printf("Finished a single playthrough; resetting.\n");
 
 			if(!mbew_reset(mbew)) {
@@ -98,8 +96,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		mbew_iter_destroy(iter);
-
+		SDL_FreeYUVOverlay(overlay);
 		SDL_FreeSurface(surface);
 		SDL_Quit();
 	}

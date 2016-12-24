@@ -30,10 +30,6 @@ with the toplevel library, and as such, easily embedded into the final shared
 - mbew_iter_t instances created within mbew_iterate() need to be aware of stream
   resets/seeks/etc. as they occur. One solution would be introducing either
   mbew_lock()/unlock() or mbew_iter_lock()/unlock().
-- Make working with mbew_iter_t** easier.
 - Implement MBEW_SRC_MEMORY.
-
-- MBEW_ITER_BLOCKING
-- mbew_iter_elapsed()
-- Should I remove mbe_iter_t actually?
+- Enable nestegg logging.
 

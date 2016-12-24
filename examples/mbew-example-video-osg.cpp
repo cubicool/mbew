@@ -12,13 +12,10 @@
 
 class MBEWUpdateCallback: public osg::Drawable::UpdateCallback {
 public:
-	MBEWUpdateCallback(mbew_t* mbew):
+	MBEWUpdateCallback(mbew_t* mbew, mbew_num_t width, mbew_num_t height):
 	_mbew(mbew),
-	_iter(NULL) {
-	}
-
-	~MBEWUpdateCallback() {
-		mbew_iter_destroy(_iter);
+	_width(width),
+	_height(height) {
 	}
 
 	virtual void update(osg::NodeVisitor* nv, osg::Drawable* drawable) {
@@ -26,28 +23,27 @@ public:
 
 		if(!image) return;
 
-		if(mbew_iterate(_mbew, &_iter, MBEW_ITER_FORMAT_RGB)) {
-			if(mbew_iter_type(_iter) != MBEW_DATA_VIDEO) return;
+		if(mbew_iterate(_mbew, MBEW_ITER_VIDEO_ONLY | MBEW_ITER_FORMAT_RGB | MBEW_ITER_SYNC)) {
+			if(!mbew_iter_sync(_mbew, _time.elapsedTime_n())) return;
 
-			mbew_data_video_t* video = mbew_iter_video(_iter);
-			// mbew_ns_t timestamp = mbew_iter_timestamp(_iter);
+			image->setImage(
+				_width,
+				_height,
+				1,
+				GL_RGBA,
+				GL_BGRA,
+				GL_UNSIGNED_BYTE,
+				static_cast<unsigned char*>(mbew_iter_video_rgb(_mbew)),
+				osg::Image::NO_DELETE
+			);
 
-			if(_time.elapsedTime_m() >= 250) {
-				image->setImage(
-					video->width,
-					video->height,
-					1,
-					GL_RGBA,
-					GL_BGRA,
-					GL_UNSIGNED_INT_8_8_8_8_REV,
-					static_cast<unsigned char*>(video->data.rgb),
-					osg::Image::NO_DELETE
-				);
+			image->dirty();
+		}
 
-				image->dirty();
+		else {
+			mbew_reset(_mbew);
 
-				_time.reset();
-			}
+			_time.reset();
 		}
 	}
 
@@ -75,7 +71,8 @@ protected:
 
 private:
 	mbew_t* _mbew;
-	mbew_iter_t* _iter;
+	mbew_num_t _width;
+	mbew_num_t _height;
 
 	osg::ElapsedTime _time;
 };
@@ -120,16 +117,11 @@ int main(int argc, char** argv) {
 
 	osg::StateSet* state = geom->getOrCreateStateSet();
 
-	state->setTextureAttributeAndModes(
-		0,
-		texture,
-		osg::StateAttribute::ON
-	);
-
+	state->setTextureAttributeAndModes( 0, texture, osg::StateAttribute::ON);
 	state->setMode(GL_BLEND, osg::StateAttribute::ON);
 	state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
-	geom->setUpdateCallback(new MBEWUpdateCallback(mbew));
+	geom->setUpdateCallback(new MBEWUpdateCallback(mbew, width, height));
 
 	geode->addDrawable(geom);
 

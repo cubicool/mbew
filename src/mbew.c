@@ -1,8 +1,20 @@
 #include "mbew-private.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void mbew_log(nestegg* ne, mbew_num_t severity, const char* format, ...) {
+#if 0
+	va_list args;
+
+	va_start(args, format);
+
+	vfprintf(stderr, format, args);
+	fprintf(stderr, "\n");
+
+	va_end(args);
+#endif
+}
 
 #define MBEW_RETURN(st) { mbew->status = MBEW_STATUS_##st; return mbew; }
 
@@ -24,7 +36,7 @@ mbew_t* mbew_create(mbew_src_t src, ...) {
 	va_end(args);
 
 	/* Regardless of the src, begin calling the "common" setup routines. */
-	if(nestegg_init(&mbew->ne, mbew->ne_io, NULL, -1)) MBEW_RETURN(INIT_IO);
+	if(nestegg_init(&mbew->ne, mbew->ne_io, mbew_log, -1)) MBEW_RETURN(INIT_IO);
 	if(nestegg_duration(mbew->ne, &mbew->duration)) MBEW_RETURN(DURATION);
 	if(nestegg_tstamp_scale(mbew->ne, &mbew->scale)) MBEW_RETURN(SCALE);
 	if(nestegg_track_count(mbew->ne, &mbew->tracks)) MBEW_RETURN(TRACK_COUNT);
@@ -87,8 +99,10 @@ mbew_t* mbew_create(mbew_src_t src, ...) {
 
 void mbew_destroy(mbew_t* mbew) {
 	if(mbew->video.track.init) vpx_codec_destroy(&mbew->video.codec);
+	if(mbew->video.data.rgb) free(mbew->video.data.rgb);
 	if(mbew->ne) nestegg_destroy(mbew->ne);
 
+	mbew_iter_reset(mbew);
 	mbew_src_destroy(mbew);
 
 	free(mbew);
@@ -97,6 +111,8 @@ void mbew_destroy(mbew_t* mbew) {
 #define BOOL_RETURN(st) { mbew->status = MBEW_STATUS_##st; return MBEW_FALSE; }
 
 mbew_bool_t mbew_reset(mbew_t* mbew) {
+	if(mbew->iter.active) BOOL_RETURN(ITER_BUSY);
+
 	if(nestegg_offset_seek(mbew->ne, 0)) BOOL_RETURN(SEEK_OFFSET);
 
 	if(
@@ -104,10 +120,13 @@ mbew_bool_t mbew_reset(mbew_t* mbew) {
 		nestegg_track_seek(mbew->ne, mbew->video.track.index, 0)
 	) BOOL_RETURN(SEEK_VIDEO);
 
-	if(
+	/* TODO: This is always failing! */
+	/* if(
 		mbew->audio.track.init &&
 		nestegg_track_seek(mbew->ne, mbew->audio.track.index, 0)
-	) BOOL_RETURN(SEEK_AUDIO);
+	) BOOL_RETURN(SEEK_AUDIO); */
+
+	mbew_iter_reset(mbew);
 
 	return MBEW_TRUE;
 }
@@ -165,7 +184,7 @@ void mbew_properties(mbew_t* mbew, ...) {
 	 * corresponding values. */
 }
 
-static const char* STRINGS[] = {
+static const char* MBEW_TYPE_STRINGS[] = {
 	"MBEW_FALSE",
 	"MBEW_TRUE",
 
@@ -195,6 +214,7 @@ static const char* STRINGS[] = {
 	"MBEW_STATUS_SEEK_OFFSET",
 	"MBEW_STATUS_SEEK_VIDEO",
 	"MBEW_STATUS_SEEK_AUDIO",
+	"MBEW_STATUS_ITER_BUSY",
 	"MBEW_STATUS_TODO",
 	"MBEW_STATUS_NOT_IMPLEMENTED",
 
@@ -211,6 +231,7 @@ static const char* STRINGS[] = {
 	"MBEW_PROP_AUDIO_CHANNELS",
 	"MBEW_PROP_AUDIO_DEPTH",
 
+	"MBEW_DATA_NONE",
 	"MBEW_DATA_VIDEO",
 	"MBEW_DATA_AUDIO"
 };
@@ -218,15 +239,15 @@ static const char* STRINGS[] = {
 #define OFFSET_BOOL 0
 #define OFFSET_SRC 2
 #define OFFSET_STATUS 4
-#define OFFSET_PROP 29
-#define OFFSET_DATA 41
-#define OFFSET_MAX 43
+#define OFFSET_PROP 30
+#define OFFSET_DATA 42
+#define OFFSET_MAX 45
 
 #define VAL_BOOL 2
 #define VAL_SRC 2
 #define VAL_STATUS 25
 #define VAL_PROP 12
-#define VAL_DATA 2
+#define VAL_DATA 3
 
 #define CASE_TYPE(ty) case MBEW_TYPE_##ty: if(val < VAL_##ty) { offset = OFFSET_##ty; } break
 
@@ -253,7 +274,7 @@ const char* mbew_string(mbew_type_t type, ...) {
 
 	va_end(arg);
 
-	if(offset < OFFSET_MAX) return STRINGS[offset + val];
+	if(offset < OFFSET_MAX) return MBEW_TYPE_STRINGS[offset + val];
 
 	return "ERROR";
 }
