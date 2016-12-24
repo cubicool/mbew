@@ -236,7 +236,9 @@ typedef enum _mbew_iter_bit_t {
  * facilitated by the mbew_iterate(); libmbew refers to thie as being "active", and this state can
  * be queried at any time using mbew_iter_active() (unlike most iteration functions).
  *
- * TODO: ...
+ * For more quick examples of the iteration API in action, use the following link:
+ *
+ *		http://github.com/cubicool/mbew
  *
  * NOTE: An #mbew_t context can only manage a single iteration per stream; it is NOT (currently)
  * safe to call mbew_iterate() simultaneously using the same #mbew_t context. */
@@ -282,6 +284,7 @@ typedef enum _mbew_type_t {
 	MBEW_TYPE_ITER_BIT
 } mbew_type_t;
 
+/* Returns the string representation of an instance corresponding to the specified #mbew_type_t. */
 MBEW_API const char* mbew_string(mbew_type_t type, ...);
 
 #ifdef  __cplusplus
