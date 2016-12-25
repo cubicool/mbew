@@ -77,7 +77,7 @@ mbew_ns_t start = nanoseconds();
 
 while(mbew_iterate(m, 0)) {
     /* Now instead of "peeking" into the stream and seeing whether it's
-     * appropriate to continue we simply retrive the number of nanoseconds
+     * appropriate to continue we simply retrieve the number of nanoseconds
      * between the the current elapsed time and the pending frame. */
     mbew_ns_t now = nanoseconds() - start;
     mbew_ns_t until = mbew_iter_next(m, now));
@@ -115,4 +115,6 @@ with the toplevel library, and as such, easily embedded into the final shared
 - Create C++14 wrapper code.
 - Support for preloading/caching and entire WebM stream for better performance.
 - Implement MBEW_SRC_MEMORY.
+- MBEW_TYPE to MBEW_ENUM.
+- Expand MBEW_SRC, MBEW_ITER and MBEW_PROP to use the full word.
 
