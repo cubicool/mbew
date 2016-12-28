@@ -2,7 +2,11 @@ PROJECT(mbew-vpx)
 
 ENABLE_LANGUAGE(ASM_NASM)
 
-SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
+IF(NOT WIN32)
+	SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
+ELSE()
+	SET(CMAKE_C_FLAGS "/arch:AVX")
+ENDIF()
 
 SET(MBEW_VPX_SRC_FILES
 	"libvpx/vpx/src/vpx_decoder.c"
