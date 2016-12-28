@@ -7,15 +7,16 @@ FUNCTION(ADD_EXAMPLE _name)
 	TARGET_LINK_LIBRARIES("mbew-example-${EXAMPLE_NAME}" mbew pthread m ${ARGV1} ${ARGV2} ${ARGV3})
 ENDFUNCTION()
 
+# ADD_EXAMPLE(c++.cpp)
 ADD_EXAMPLE(iterate.c)
 ADD_EXAMPLE(properties.c)
+# ADD_EXAMPLE(src-memory.c)
 ADD_EXAMPLE(strings.c)
 
-# TODO: Make these conditional!
-INCLUDE_DIRECTORIES("/usr/include/cairo")
-ADD_EXAMPLE(video-cairo.c cairo)
-
-ADD_EXAMPLE(video-osg.cpp osg osgViewer)
-
-ADD_EXAMPLE(video-sdl.c SDL)
+IF(NOT WIN32)
+	INCLUDE_DIRECTORIES("/usr/include/cairo")
+	ADD_EXAMPLE(video-cairo.c cairo)
+	ADD_EXAMPLE(video-osg.cpp osg osgViewer)
+	ADD_EXAMPLE(video-sdl.c SDL)
+ENDIF()
 
