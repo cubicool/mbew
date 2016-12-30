@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #if defined(_MSC_VER)
-	#define MBEW_API __declspec(dllimport)
+	#define MBEW_API 
 #else
 	#define MBEW_API
 #endif
