@@ -5,6 +5,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 ADD_SUBDIRECTORY("ext/mbew-vpx")
 ADD_SUBDIRECTORY("ext/mbew-nestegg")
 
+ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
+
 SET(MBEW_SRC_FILES
 	"src/mbew.c"
 	"src/mbew-format.c"
