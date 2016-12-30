@@ -114,7 +114,7 @@ with the toplevel library, and as such, easily embedded into the final shared
 - Add Vorbis and Opus support.
 - Create C++14 wrapper code.
 - Support for preloading/caching and entire WebM stream for better performance.
-- Implement MBEW_SRC_MEMORY.
-- MBEW_TYPE to MBEW_ENUM.
-- Expand MBEW_SRC, MBEW_ITER and MBEW_PROP to use the full word.
+- Make mbew_iterate() threadsafe; this will involve having it return a unique
+  mbew_iter_t instance (another private implementation) per iteration.
+- Improve the heinous MBEW_RETURN defines.
 

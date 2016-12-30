@@ -16,7 +16,7 @@ static int mbew_file_read(void* dest, size_t length, void* userdata) {
 }
 
 static int mbew_file_seek(int64_t offset, int whence, void* userdata) {
-	return fseek((FILE*)(userdata), (long)offset, whence);
+	return fseek((FILE*)(userdata), (long)(offset), whence);
 }
 
 static int64_t mbew_file_tell(void* userdata) {
@@ -49,7 +49,8 @@ static void mbew_src_file_destroy(mbew_t m) {
 }
 
 typedef struct _mbew_memory_t {
-	char* data;
+	mbew_bytes_t data;
+
 	int64_t size;
 	int64_t pos;
 } mbew_memory_t;
@@ -110,25 +111,28 @@ static mbew_bool_t mbew_src_memory_create(mbew_t m, va_list args) {
 }
 
 static void mbew_src_memory_destroy(mbew_t m) {
+	free(m->ne_io.userdata);
 }
 
-mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t m, va_list args) {
+mbew_bool_t mbew_src_create(mbew_source_t src, mbew_t m, va_list args) {
 	if(
-		src == MBEW_SRC_FILE &&
+		src == MBEW_SOURCE_FILE &&
 		!mbew_src_file_create(m, args)
-	) m->status = MBEW_STATUS_SRC_FILE;
+	) m->status = MBEW_STATUS_SOURCE_FILE;
 
 	else if(
-		src == MBEW_SRC_MEMORY &&
+		src == MBEW_SOURCE_MEMORY &&
 		!mbew_src_memory_create(m, args)
-	) m->status = MBEW_STATUS_SRC_MEMORY;
+	) m->status = MBEW_STATUS_SOURCE_MEMORY;
+
+	else m->src = src;
 
 	return !m->status;
 }
 
 void mbew_src_destroy(mbew_t m) {
-	if(m->src == MBEW_SRC_FILE) mbew_src_file_destroy(m);
+	if(m->src == MBEW_SOURCE_FILE) mbew_src_file_destroy(m);
 
-	else if(m->src == MBEW_SRC_MEMORY) mbew_src_memory_destroy(m);
+	else if(m->src == MBEW_SOURCE_MEMORY) mbew_src_memory_destroy(m);
 }
 

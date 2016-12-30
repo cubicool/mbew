@@ -20,15 +20,18 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	int e;
 
 	/* Check for any conflicting flag bits. */
-	if(flags & (MBEW_ITER_VIDEO_ONLY | MBEW_ITER_AUDIO_ONLY)) MBEW_RETURN(ITER_FLAGS);
+	if(mbew_flags(flags, MBEW_ITERATE_VIDEO | MBEW_ITERATE_AUDIO)) MBEW_RETURN(ITERATE_FLAGS);
 
-	/* In MBEW_ITER_SYNC mode, the user is expected to feed elapsed time data into the iteration
+	/* In MBEW_ITERATE_SYNC mode, the user is expected to feed elapsed time data into the iteration
 	 * state before any data is yielded. */
-	if((flags & MBEW_ITER_SYNC) && (m->iter.elapsed < m->iter.timestamp)) return MBEW_TRUE;
+	if(
+		mbew_flags(flags, MBEW_ITERATE_SYNC) &&
+		(m->iter.elapsed < m->iter.timestamp)
+	) return MBEW_TRUE;
 
 	/* If iter is NULL, this is the first time iterate has been called. */
 	if(!m->iter.active) {
-		if(m->video.track.init && (flags & MBEW_ITER_FORMAT_RGB)) {
+		if(m->video.track.init && mbew_flags(flags, MBEW_ITERATE_RGB)) {
 			m->video.data.rgb = (mbew_bytes_t)(malloc(
 				m->video.params.width *
 				m->video.params.height *
@@ -58,7 +61,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 
 		type = nestegg_track_type(m->ne, track);
 
-		if(type == NESTEGG_TRACK_VIDEO && !(flags & MBEW_ITER_AUDIO_ONLY)) {
+		if(type == NESTEGG_TRACK_VIDEO && !mbew_flags(flags, MBEW_ITERATE_AUDIO)) {
 			mbew_bytes_t data = NULL;
 			size_t length;
 
@@ -85,7 +88,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 			if((img = vpx_codec_get_frame(&m->video.codec, &codec_iter))) {
 				/* TODO: Handle the case where the img->d_w and img->d_h are different from the
 				 * value detected in the video.params struture. */
-				if(flags & MBEW_ITER_FORMAT_RGB) mbew_format_rgb(img, m->video.data.rgb);
+				if(mbew_flags(flags, MBEW_ITERATE_RGB)) mbew_format_rgb(img, m->video.data.rgb);
 
 				/* Otherwise, leave the YUV420 data unmolested. */
 				else {
@@ -101,7 +104,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 			break;
 		}
 
-		else if(type == NESTEGG_TRACK_AUDIO && !(flags & MBEW_ITER_VIDEO_ONLY)) {
+		else if(type == NESTEGG_TRACK_AUDIO && !mbew_flags(flags, MBEW_ITERATE_VIDEO)) {
 			m->iter.type = MBEW_DATA_AUDIO;
 
 			break;
@@ -143,7 +146,7 @@ mbew_ns_t mbew_iter_timestamp(mbew_t m) {
 }
 
 mbew_bool_t mbew_iter_sync(mbew_t m, mbew_ns_t elapsed) {
-	if(!m->iter.active || !(m->iter.flags & MBEW_ITER_SYNC)) return MBEW_FALSE;
+	if(!m->iter.active || !mbew_flags(m->iter.flags, MBEW_ITERATE_SYNC)) return MBEW_FALSE;
 
 	m->iter.elapsed = elapsed;
 
@@ -153,22 +156,22 @@ mbew_bool_t mbew_iter_sync(mbew_t m, mbew_ns_t elapsed) {
 mbew_ns_t mbew_iter_next(mbew_t m) {
 	if(
 		!m->iter.active ||
-		!(m->iter.flags & MBEW_ITER_SYNC) ||
+		!mbew_flags(m->iter.flags, MBEW_ITERATE_SYNC) ||
 		(m->iter.elapsed > m->iter.timestamp)
 	) return 0;
 
 	return m->iter.timestamp - m->iter.elapsed;
 }
 
-mbew_bytes_t mbew_iter_video_rgb(mbew_t m) {
+mbew_bytes_t mbew_iter_rgb(mbew_t m) {
 	return m->video.data.rgb;
 }
 
-mbew_bytes_t* mbew_iter_video_yuv_planes(mbew_t m) {
+mbew_bytes_t* mbew_iter_yuv_planes(mbew_t m) {
 	return m->video.data.yuv.planes;
 }
 
-mbew_num_t* mbew_iter_video_yuv_stride(mbew_t m) {
+mbew_num_t* mbew_iter_yuv_stride(mbew_t m) {
 	return m->video.data.yuv.stride;
 }
 

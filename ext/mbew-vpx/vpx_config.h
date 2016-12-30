@@ -1,6 +1,7 @@
 #ifndef VPX_CONFIG_H
 #define VPX_CONFIG_H
 #if defined(_MSC_VER)
+	#define WIN32 1
 	#define INLINE
 	#define ARCH_X86 1
 	#define ARCH_X86_64 0

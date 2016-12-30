@@ -54,7 +54,7 @@ struct _mbew_t {
 	nestegg* ne;
 	nestegg_io ne_io;
 
-	mbew_src_t src;
+	mbew_source_t src;
 	mbew_status_t status;
 
 	/* The WebM duration in nanoseconds. */
@@ -75,12 +75,15 @@ struct _mbew_t {
 	mbew_iter_t iter;
 };
 
-mbew_bool_t mbew_src_create(mbew_src_t src, mbew_t m, va_list args);
+mbew_bool_t mbew_src_create(mbew_source_t src, mbew_t m, va_list args);
 void mbew_src_destroy(mbew_t m);
 
 void mbew_format_rgb(vpx_image_t* img, uint8_t* dest);
 
 void mbew_iter_reset(mbew_t m);
+
+#define mbew_flags(lhs, rhs) \
+	((mbew_enum_value((lhs)) & mbew_enum_value((rhs))) == mbew_enum_value((rhs)))
 
 #endif
 

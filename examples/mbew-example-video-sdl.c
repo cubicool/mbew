@@ -9,13 +9,13 @@ mbew_bool_t play_video(mbew_t m, SDL_Overlay* overlay, SDL_Rect* rect) {
 
 	printf("Starting at: %ums\n", start);
 
-	while(mbew_iterate(m, MBEW_ITER_VIDEO_ONLY)) {
+	while(mbew_iterate(m, MBEW_ITERATE_VIDEO)) {
 		SDL_Event event;
 
 		mbew_num_t now = SDL_GetTicks() - start;
 		mbew_num_t timestamp = mbew_iter_timestamp(m) / 1000000;
-		mbew_bytes_t* planes = mbew_iter_video_yuv_planes(m);
-		mbew_num_t* stride = mbew_iter_video_yuv_stride(m);
+		mbew_bytes_t* planes = mbew_iter_yuv_planes(m);
+		mbew_num_t* stride = mbew_iter_yuv_stride(m);
 		mbew_num_t y;
 
 		printf(
@@ -65,12 +65,19 @@ mbew_bool_t play_video(mbew_t m, SDL_Overlay* overlay, SDL_Rect* rect) {
 }
 
 int main(int argc, char** argv) {
-	mbew_t m = mbew_create(MBEW_SRC_FILE, argv[1]);
-	mbew_status_t status;
+	mbew_t m;
 
-	if(!(status = mbew_status(m))) {
-		mbew_num_t width = mbew_property(m, MBEW_PROP_VIDEO_WIDTH).num;
-		mbew_num_t height = mbew_property(m, MBEW_PROP_VIDEO_HEIGHT).num;
+	if(argc < 2) {
+		printf("Must specify WebM file.\n");
+
+		return 1;
+	}
+
+	m = mbew_create(MBEW_SOURCE_FILE, argv[1]);
+
+	if(mbew_valid(m)) {
+		mbew_num_t width = mbew_property(m, MBEW_PROPERTY_VIDEO_WIDTH).num;
+		mbew_num_t height = mbew_property(m, MBEW_PROPERTY_VIDEO_HEIGHT).num;
 
 		SDL_Surface* surface = NULL;
 		SDL_Overlay* overlay = NULL;
@@ -89,11 +96,7 @@ int main(int argc, char** argv) {
 		while(play_video(m, overlay, &rect)) {
 			printf("Finished a single playthrough; resetting.\n");
 
-			if(!mbew_reset(m)) {
-				printf("Couldn't reset: %s\n", mbew_string(MBEW_TYPE_STATUS, mbew_status(m)));
-
-				break;
-			}
+			if(!mbew_reset(m)) break;
 		}
 
 		SDL_FreeYUVOverlay(overlay);
@@ -101,7 +104,7 @@ int main(int argc, char** argv) {
 		SDL_Quit();
 	}
 
-	else printf("Error creating context (%s)\n", mbew_string(MBEW_TYPE_STATUS, status));
+	else printf("Error creating context (%s)\n", mbew_string(mbew_status(m)));
 
 	mbew_destroy(m);
 

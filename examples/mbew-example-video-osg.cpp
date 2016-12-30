@@ -1,4 +1,4 @@
-#include "mbew.h"
+#include "mbew.hpp"
 
 #include <osg/Math>
 #include <osg/Geometry>
@@ -12,7 +12,7 @@
 
 class MBEWUpdateCallback: public osg::Drawable::UpdateCallback {
 public:
-	MBEWUpdateCallback(mbew_t m, mbew_num_t width, mbew_num_t height):
+	MBEWUpdateCallback(mbew::Context m, mbew::num_t width, mbew::num_t height):
 	_m(m),
 	_width(width),
 	_height(height) {
@@ -23,8 +23,19 @@ public:
 
 		if(!image) return;
 
-		if(mbew_iterate(_m, MBEW_ITER_VIDEO_ONLY | MBEW_ITER_FORMAT_RGB | MBEW_ITER_SYNC)) {
-			if(!mbew_iter_sync(_m, _time.elapsedTime_n())) return;
+		// This call to iterate() will only yield video data (mbew::Iterate::VIDEO), in addition to
+		// requiring the caller to update the internal time state (mbew::Iterate::SYNC). When the
+		// SYNC flag is specified, the corresponding iter.sync() method should be called once per
+		// iteration, accepting the amount of time--in nanoseconds--that has elapsed since begining
+		// the iteration. If the elapsed time equals or exceeds the pending frames timestamp,
+		// iter.sync() will return true, instructing the caller to FULLY process this iteration
+		// before the frame is advanced.
+		//
+		// The iterate() method itself will return true until either an error condition is met
+		// (which can be queried via valid()/status()) or a single, complete iteration has been
+		// performed.
+		if(_m->iterate(mbew::Iterate::VIDEO | mbew::Iterate::RGB | mbew::Iterate::SYNC)) {
+			if(!_m->iter.sync(_time.elapsedTime_n())) return;
 
 			image->setImage(
 				_width,
@@ -33,15 +44,16 @@ public:
 				GL_RGBA,
 				GL_BGRA,
 				GL_UNSIGNED_BYTE,
-				static_cast<unsigned char*>(mbew_iter_video_rgb(_m)),
+				_m->iter.rgb(),
 				osg::Image::NO_DELETE
 			);
 
 			image->dirty();
 		}
 
+		// Once a full iteration completes, reset both the context and the timer.
 		else {
-			mbew_reset(_m);
+			_m->reset();
 
 			_time.reset();
 		}
@@ -68,36 +80,38 @@ protected:
 		return image;
 	}
 
-
 private:
-	mbew_t _m;
-	mbew_num_t _width;
-	mbew_num_t _height;
+	mbew::Context _m;
+	mbew::num_t _width;
+	mbew::num_t _height;
 
 	osg::ElapsedTime _time;
 };
 
 int main(int argc, char** argv) {
-	osgViewer::Viewer viewer;
-
-	mbew_t m = mbew_create(MBEW_SRC_FILE, argv[1]);
-	mbew_status_t status;
-
-	if((status = mbew_status(m))) {
-		std::cout << "Error opening context: " << argv[1] << std::endl;
-		std::cout << "Status was: " << mbew_string(MBEW_TYPE_STATUS, status) << std::endl;
+	if(argc < 2) {
+		std::cout << "Must specify WebM file." << std::endl;
 
 		return 1;
 	}
 
-	if(!mbew_property(m, MBEW_PROP_VIDEO).b) {
+	mbew::Context m = mbew::create(argv[1]);
+
+	if(!m->valid()) {
+		std::cout << "Error opening '" << argv[1] << "'" << std::endl;
+		std::cout << "Status was: " << mbew::string(m->status()) << std::endl;
+
+		return 1;
+	}
+
+	if(!m->property(mbew::Property::VIDEO).b) {
 		std::cout << "File contains no video." << std::endl;
 
 		return 1;
 	}
 
-	mbew_num_t width = mbew_property(m, MBEW_PROP_VIDEO_WIDTH).num;
-	mbew_num_t height = mbew_property(m, MBEW_PROP_VIDEO_HEIGHT).num;
+	mbew::num_t width = m->property(mbew::Property::VIDEO_WIDTH).num;
+	mbew::num_t height = m->property(mbew::Property::VIDEO_HEIGHT).num;
 
 	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
@@ -125,13 +139,13 @@ int main(int argc, char** argv) {
 
 	geode->addDrawable(geom);
 
+	osgViewer::Viewer viewer;
+
 	viewer.setSceneData(geode);
 	viewer.setUpViewInWindow(50, 50, width + 40, height + 40);
 	viewer.addEventHandler(new osgViewer::StatsHandler());
 
 	int r = viewer.run();
-
-	mbew_destroy(m);
 
 	return r;
 }
