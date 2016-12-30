@@ -16,7 +16,7 @@ static int mbew_file_read(void* dest, size_t length, void* userdata) {
 }
 
 static int mbew_file_seek(int64_t offset, int whence, void* userdata) {
-	return fseek((FILE*)(userdata), offset, whence);
+	return fseek((FILE*)(userdata), (long)offset, whence);
 }
 
 static int64_t mbew_file_tell(void* userdata) {
@@ -49,7 +49,7 @@ static void mbew_src_file_destroy(mbew_t m) {
 }
 
 typedef struct _mbew_memory_t {
-	void* data;
+	char* data;
 	int64_t size;
 	int64_t pos;
 } mbew_memory_t;
