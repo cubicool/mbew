@@ -5,7 +5,7 @@
 
 #if defined(_MSC_VER)
 	#define MBEW_API
--	/* #define MBEW_API __declspec(dllimport) */
+	/* #define MBEW_API __declspec(dllimport) */
 #else
 	#define MBEW_API
 #endif
