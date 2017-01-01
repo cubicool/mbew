@@ -38,12 +38,12 @@ typedef unsigned char* mbew_bytes_t;
 #define MBEW_ID_CODEC 0x05
 #define MBEW_ID_ITERATE 0x06
 
-#define MBEW_ENUM(id, name, val) \
-	MBEW_##id##_##name = ((MBEW_ID << 24) | (MBEW_ID_##id << 16) | val)
-
+#define mbew_enum(id, val) ((MBEW_ID << 24) | (MBEW_ID_##id << 16) | val)
 #define mbew_enum_id(e) ((e & 0x00FF0000) >> 16)
 #define mbew_enum_value(e) (e & 0x0000FFFF)
-#define mbew_enum(e) (((e & 0xFF000000) >> 24 == MBEW_ID) && mbew_enum_id(e) <= 0x06)
+#define mbew_enum_valid(e) (((e & 0xFF000000) >> 24 == MBEW_ID) && mbew_enum_id(e) <= 0x06)
+
+#define MBEW_ENUM(id, name, val) MBEW_##id##_##name = mbew_enum(id, val)
 
 /* Standard FALSE(zero) and TRUE (non-zero) values, usually preset somewhere in your include
  * hierarchy as simply TRUE and FALSE. */
@@ -78,19 +78,21 @@ typedef enum _mbew_status_t {
 	MBEW_ENUM(STATUS, UNKNOWN_TRACK, 0x09),
 	MBEW_ENUM(STATUS, PARAMS_VIDEO, 0x0A),
 	MBEW_ENUM(STATUS, PARAMS_AUDIO, 0x0B),
-	MBEW_ENUM(STATUS, PACKET_READ, 0x0C),
-	MBEW_ENUM(STATUS, PACKET_TRACK, 0x0D),
-	MBEW_ENUM(STATUS, PACKET_COUNT, 0x0E),
-	MBEW_ENUM(STATUS, PACKET_TSTAMP, 0x0F),
-	MBEW_ENUM(STATUS, PACKET_DURATION, 0x10),
-	MBEW_ENUM(STATUS, PACKET_DATA, 0x11),
-	MBEW_ENUM(STATUS, VPX_DECODE, 0x12),
-	MBEW_ENUM(STATUS, GET_FRAME, 0x13),
-	MBEW_ENUM(STATUS, SEEK_OFFSET, 0x14),
-	MBEW_ENUM(STATUS, SEEK_VIDEO, 0x15),
-	MBEW_ENUM(STATUS, SEEK_AUDIO, 0x16),
-	MBEW_ENUM(STATUS, ITERATE_FLAGS, 0x17),
-	MBEW_ENUM(STATUS, NOT_IMPLEMENTED, 0x18)
+	MBEW_ENUM(STATUS, CODEC_DATA_COUNT, 0x0C),
+	MBEW_ENUM(STATUS, CODEC_DATA, 0x0D),
+	MBEW_ENUM(STATUS, PACKET_READ, 0x0E),
+	MBEW_ENUM(STATUS, PACKET_TRACK, 0x0F),
+	MBEW_ENUM(STATUS, PACKET_COUNT, 0x10),
+	MBEW_ENUM(STATUS, PACKET_TSTAMP, 0x11),
+	MBEW_ENUM(STATUS, PACKET_DURATION, 0x12),
+	MBEW_ENUM(STATUS, PACKET_DATA, 0x13),
+	MBEW_ENUM(STATUS, VPX_DECODE, 0x14),
+	MBEW_ENUM(STATUS, GET_FRAME, 0x15),
+	MBEW_ENUM(STATUS, SEEK_OFFSET, 0x16),
+	MBEW_ENUM(STATUS, SEEK_VIDEO, 0x17),
+	MBEW_ENUM(STATUS, SEEK_AUDIO, 0x18),
+	MBEW_ENUM(STATUS, ITERATE_FLAGS, 0x19),
+	MBEW_ENUM(STATUS, NOT_IMPLEMENTED, 0x1A)
 } mbew_status_t;
 
 /* Properties represent the high-level attributes of a WebmM source. Each property can be accessed

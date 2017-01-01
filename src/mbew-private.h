@@ -9,10 +9,10 @@
 #include <stdarg.h>
 
 typedef struct _mbew_track_t {
-	mbew_num_t type;
-	mbew_num_t codec;
-	mbew_num_t index;
 	mbew_bool_t init;
+	mbew_num_t type;
+	mbew_num_t index;
+	mbew_codec_t codec;
 } mbew_track_t;
 
 typedef struct _mbew_audio_t {

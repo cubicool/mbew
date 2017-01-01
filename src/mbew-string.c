@@ -10,7 +10,7 @@ static mbew_string_t MBEW_STRING_SOURCE = { 2, {
 	"SOURCE_MEMORY"
 }};
 
-static mbew_string_t MBEW_STRING_STATUS = { 25, {
+static mbew_string_t MBEW_STRING_STATUS = { 27, {
 	"STATUS_VALID",
 	"STATUS_NULL_CONTEXT",
 	"STATUS_SOURCE_FILE",
@@ -23,6 +23,8 @@ static mbew_string_t MBEW_STRING_STATUS = { 25, {
 	"STATUS_UNKNOWN_TRACK",
 	"STATUS_PARAMS_VIDEO",
 	"STATUS_PARAMS_AUDIO",
+	"STATUS_CODEC_DATA_COUNT",
+	"STATUS_CODEC_DATA",
 	"STATUS_PACKET_READ",
 	"STATUS_PACKET_TRACK",
 	"STATUS_PACKET_COUNT",
@@ -85,7 +87,7 @@ const char* mbew_string(mbew_num_t e) {
 		mbew_num_t id = mbew_enum_id(e);
 		mbew_num_t value = mbew_enum_value(e);
 
-		if(!mbew_enum(e)) return NULL;
+		if(!mbew_enum_valid(e)) return NULL;
 
 		else if(id == MBEW_ID_ITERATE) return "!!TODO!!";
 
