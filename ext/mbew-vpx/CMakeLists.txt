@@ -2,116 +2,7 @@ PROJECT(mbew-vpx)
 
 ENABLE_LANGUAGE(ASM_NASM)
 
-IF(NOT WIN32)
-	SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
-ELSE()
-	SET(CMAKE_C_FLAGS "/arch:AVX")
-ENDIF()
-
 SET(MBEW_VPX_SRC_FILES
-	"libvpx/vpx/src/vpx_decoder.c"
-	"libvpx/vpx/src/vpx_encoder.c"
-	"libvpx/vpx/src/vpx_codec.c"
-	"libvpx/vpx/src/vpx_image.c"
-	"libvpx/vpx_mem/vpx_mem.c"
-	"libvpx/vpx_scale/generic/vpx_scale.c"
-	"libvpx/vpx_scale/generic/yv12config.c"
-	"libvpx/vpx_scale/generic/yv12extend.c"
-	"libvpx/vpx_scale/generic/gen_scalers.c"
-	"libvpx/vpx_scale/vpx_scale_rtcd.c"
-	"libvpx/vpx_dsp/prob.c"
-	"libvpx/vpx_dsp/bitreader.c"
-	"libvpx/vpx_dsp/bitreader_buffer.c"
-	"libvpx/vpx_dsp/intrapred.c"
-	"libvpx/vpx_dsp/add_noise.c"
-	"libvpx/vpx_dsp/deblock.c"
-	"libvpx/vpx_dsp/vpx_convolve.c"
-	"libvpx/vpx_dsp/x86/vpx_asm_stubs.c"
-	"libvpx/vpx_dsp/x86/vpx_subpixel_8t_intrin_avx2.c"
-	"libvpx/vpx_dsp/x86/vpx_subpixel_8t_intrin_ssse3.c"
-	"libvpx/vpx_dsp/loopfilter.c"
-	"libvpx/vpx_dsp/x86/loopfilter_sse2.c"
-	"libvpx/vpx_dsp/x86/loopfilter_avx2.c"
-	"libvpx/vpx_dsp/inv_txfm.c"
-	"libvpx/vpx_dsp/x86/inv_txfm_sse2.c"
-	"libvpx/vpx_dsp/variance.c"
-	"libvpx/vpx_dsp/x86/variance_sse2.c"
-	"libvpx/vpx_dsp/x86/variance_avx2.c"
-	"libvpx/vpx_dsp/x86/variance_impl_avx2.c"
-	"libvpx/vpx_dsp/vpx_dsp_rtcd.c"
-	"libvpx/vpx_util/vpx_thread.c"
-	"libvpx/vp8/common/alloccommon.c"
-	"libvpx/vp8/common/blockd.c"
-	"libvpx/vp8/common/copy_c.c"
-	"libvpx/vp8/common/dequantize.c"
-	"libvpx/vp8/common/entropy.c"
-	"libvpx/vp8/common/entropymode.c"
-	"libvpx/vp8/common/entropymv.c"
-	"libvpx/vp8/common/extend.c"
-	"libvpx/vp8/common/filter.c"
-	"libvpx/vp8/common/findnearmv.c"
-	"libvpx/vp8/common/generic/systemdependent.c"
-	"libvpx/vp8/common/idct_blk.c"
-	"libvpx/vp8/common/idctllm.c"
-	"libvpx/vp8/common/rtcd.c"
-	"libvpx/vp8/common/vp8_loopfilter.c"
-	"libvpx/vp8/common/loopfilter_filters.c"
-	"libvpx/vp8/common/mbpitch.c"
-	"libvpx/vp8/common/modecont.c"
-	"libvpx/vp8/common/quant_common.c"
-	"libvpx/vp8/common/reconinter.c"
-	"libvpx/vp8/common/reconintra.c"
-	"libvpx/vp8/common/reconintra4x4.c"
-	"libvpx/vp8/common/setupintrarecon.c"
-	"libvpx/vp8/common/swapyv12buffer.c"
-	"libvpx/vp8/common/treecoder.c"
-	"libvpx/vp8/common/x86/filter_x86.c"
-	"libvpx/vp8/common/x86/vp8_asm_stubs.c"
-	"libvpx/vp8/common/x86/loopfilter_x86.c"
-	"libvpx/vp8/common/mfqe.c"
-	"libvpx/vp8/common/postproc.c"
-	"libvpx/vp8/common/x86/idct_blk_mmx.c"
-	"libvpx/vp8/common/x86/idct_blk_sse2.c"
-	"libvpx/vp8/vp8_dx_iface.c"
-	"libvpx/vp8/decoder/dboolhuff.c"
-	"libvpx/vp8/decoder/decodemv.c"
-	"libvpx/vp8/decoder/decodeframe.c"
-	"libvpx/vp8/decoder/detokenize.c"
-	"libvpx/vp8/decoder/onyxd_if.c"
-	"libvpx/vp8/decoder/threading.c"
-	"libvpx/vp9/common/vp9_alloccommon.c"
-	"libvpx/vp9/common/vp9_blockd.c"
-	"libvpx/vp9/common/vp9_entropy.c"
-	"libvpx/vp9/common/vp9_entropymode.c"
-	"libvpx/vp9/common/vp9_entropymv.c"
-	"libvpx/vp9/common/vp9_frame_buffers.c"
-	"libvpx/vp9/common/vp9_idct.c"
-	"libvpx/vp9/common/vp9_filter.c"
-	"libvpx/vp9/common/vp9_pred_common.c"
-	"libvpx/vp9/common/vp9_rtcd.c"
-	"libvpx/vp9/common/vp9_scale.c"
-	"libvpx/vp9/common/vp9_seg_common.c"
-	"libvpx/vp9/common/vp9_tile_common.c"
-	"libvpx/vp9/common/vp9_loopfilter.c"
-	"libvpx/vp9/common/vp9_thread_common.c"
-	"libvpx/vp9/common/vp9_mvref_common.c"
-	"libvpx/vp9/common/vp9_quant_common.c"
-	"libvpx/vp9/common/vp9_reconinter.c"
-	"libvpx/vp9/common/vp9_reconintra.c"
-	"libvpx/vp9/common/vp9_common_data.c"
-	"libvpx/vp9/common/vp9_scan.c"
-	"libvpx/vp9/common/x86/vp9_idct_intrin_sse2.c"
-	"libvpx/vp9/vp9_dx_iface.c"
-	"libvpx/vp9/decoder/vp9_decodemv.c"
-	"libvpx/vp9/decoder/vp9_decodeframe.c"
-	"libvpx/vp9/decoder/vp9_detokenize.c"
-	"libvpx/vp9/decoder/vp9_dthread.c"
-	"libvpx/vp9/decoder/vp9_decoder.c"
-	"libvpx/vp9/decoder/vp9_dsubexp.c"
-	"os-linux/vpx_config.c"
-)
-
-SET(WINDOWS_TMP
 	"libvpx/vpx/src/vpx_decoder.c"
 	"libvpx/vpx/src/vpx_encoder.c"
 	"libvpx/vpx/src/vpx_codec.c"
@@ -230,17 +121,44 @@ SET(MBEW_VPX_ASM_FILES
 	"libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
 )
 
+SET(MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libvpx")
+
+IF(NOT WIN32)
+	SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
+
+	SET(MBEW_VPX_SRC_FILES ${MBEW_VPX_SRC_FILES}
+		"libvpx/vp9/common/vp9_common_data.c"
+		"libvpx/vp9/common/vp9_mvref_common.c"
+		"libvpx/vp9/common/vp9_quant_common.c"
+		"libvpx/vp9/common/vp9_reconinter.c"
+		"libvpx/vp9/common/vp9_reconintra.c"
+		"libvpx/vp9/common/vp9_scan.c"
+		"libvpx/vp9/common/vp9_thread_common.c"
+		"libvpx/vp9/common/x86/vp9_idct_intrin_sse2.c"
+		"libvpx/vp9/decoder/vp9_decodeframe.c"
+		"libvpx/vp9/decoder/vp9_decodemv.c"
+		"libvpx/vp9/decoder/vp9_decoder.c"
+		"libvpx/vp9/decoder/vp9_detokenize.c"
+		"libvpx/vp9/decoder/vp9_dsubexp.c"
+		"libvpx/vp9/decoder/vp9_dthread.c"
+		"libvpx/vp9/vp9_dx_iface.c"
+		"os-linux/vpx_config.c"
+	)
+
+	SET(MBEW_VPX_ASM_FILES ${MBEW_VPX_ASM_FILES} "libvpx/vpx_ports/x86_abi_support.asm")
+	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-linux")
+ELSE()
+	SET(CMAKE_C_FLAGS "/arch:AVX")
+	SET(MBEW_VPX_SRC_FILES ${MBEW_VPX_SRC_FILES} "os-windows/vpx_config.c")
+	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-windows")
+ENDIF()
+
 SET(MBEW_VPX_PUBLIC_HEADER_FILES)
 SET(MBEW_VPX_PRIVATE_HEADER_FILES)
 
 SET(MBEW_VPX_HEADER_FILES
 	${MBEW_VPX_PUBLIC_HEADER_FILES}
 	${MBEW_VPX_PRIVATE_HEADER_FILES}
-)
-
-SET(MBEW_VPX_INCLUDE_DIRS
-	"${PROJECT_SOURCE_DIR}/libvpx/"
-	"${PROJECT_SOURCE_DIR}/os-linux"
 )
 
 INCLUDE_DIRECTORIES(${MBEW_VPX_INCLUDE_DIRS})

@@ -20,3 +20,5 @@ keep an eye on them and include them manually if something is wrong:
     libvpx/vp9/decoder/vp9_dthread.c
     libvpx/vp9/vp9_dx_iface.c
 
+    libvpx/vpx_ports/x86_abi_support.asm
+
