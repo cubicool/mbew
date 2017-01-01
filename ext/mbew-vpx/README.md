@@ -22,3 +22,9 @@ keep an eye on them and include them manually if something is wrong:
 
     libvpx/vpx_ports/x86_abi_support.asm
 
+YASM/NASM
+=========
+
+    DEBUG: yasm -Xvc -g cv8 -f win64
+    RELEASE: yasm -Xvc -f win64
+
