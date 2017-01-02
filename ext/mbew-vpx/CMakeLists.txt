@@ -104,7 +104,6 @@ SET(MBEW_VPX_SRC_FILES
 
 SET(MBEW_VPX_ASM_FILES
 	"libvpx/vpx_ports/emms.asm"
-	"libvpx/vpx_ports/x86_abi_support.asm"
 	"libvpx/vpx_dsp/x86/intrapred_sse2.asm"
 	"libvpx/vpx_dsp/x86/intrapred_ssse3.asm"
 	"libvpx/vpx_dsp/x86/vpx_subpixel_8t_ssse3.asm"
@@ -115,8 +114,6 @@ SET(MBEW_VPX_ASM_FILES
 	"libvpx/vpx_dsp/x86/vpx_subpixel_bilinear_ssse3.asm"
 	"libvpx/vpx_dsp/x86/vpx_convolve_copy_sse2.asm"
 	"libvpx/vpx_dsp/x86/inv_wht_sse2.asm"
-	"libvpx/vpx_dsp/x86/inv_txfm_ssse3_x86_64.asm"
-	"libvpx/vpx_dsp/x86/ssim_opt_x86_64.asm"
 	"libvpx/vpx_dsp/x86/subpel_variance_sse2.asm"
 	"libvpx/vp8/common/x86/dequantize_mmx.asm"
 	"libvpx/vp8/common/x86/idctllm_mmx.asm"
@@ -131,7 +128,6 @@ SET(MBEW_VPX_ASM_FILES
 	"libvpx/vp8/common/x86/copy_sse3.asm"
 	"libvpx/vp8/common/x86/subpixel_ssse3.asm"
 	"libvpx/vp8/common/x86/mfqe_sse2.asm"
-	"libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
 )
 
 SET(MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libvpx")
