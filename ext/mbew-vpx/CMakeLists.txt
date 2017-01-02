@@ -132,7 +132,6 @@ SET(MBEW_VPX_ASM_FILES
 	"libvpx/vp8/common/x86/subpixel_ssse3.asm"
 	"libvpx/vp8/common/x86/mfqe_sse2.asm"
 	"libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
-	"libvpx/vpx_ports/x86_abi_support.asm"
 )
 
 SET(MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libvpx")
@@ -140,6 +139,14 @@ SET(MBEW_ARCH "x86_64")
 
 IF(MBEW32)
 	SET(MBEW_ARCH "x86")
+
+ELSE()
+	LIST(APPEND MBEW_VPX_ASM_FILES
+		"libvpx/vpx_ports/x86_abi_support.asm"
+		"libvpx/vpx_dsp/x86/inv_txfm_ssse3_x86_64.asm"
+		"libvpx/vpx_dsp/x86/ssim_opt_x86_64.asm"
+		"libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
+	)
 ENDIF()
 
 IF(NOT WIN32)
