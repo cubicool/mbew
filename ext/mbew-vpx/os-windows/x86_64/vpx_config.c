@@ -6,5 +6,8 @@
 /* in the file PATENTS.  All contributing project authors may */
 /* be found in the AUTHORS file in the root of the source tree. */
 #include "vpx/vpx_codec.h"
-static const char* const cfg = "Custom CMake config for x86_64 mbew; no encoding support.";
+static const char* const cfg =
+	"Custom CMake config for x86_64 mbew; no encoding support.\n"
+	"--disable-examples --disable-unit-tests --disable-vp8-encoder --disable-vp9-encoder --target=x86_64-win64-vs12"
+;
 const char *vpx_codec_build_config(void) {return cfg;}

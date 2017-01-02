@@ -9,12 +9,12 @@
 #ifndef VPX_CONFIG_H
 #define VPX_CONFIG_H
 #define WIN32 1
-#define RESTRICT    
+#define RESTRICT
 #define INLINE      __forceinline
 #define ARCH_ARM 0
 #define ARCH_MIPS 0
-#define ARCH_X86 0
-#define ARCH_X86_64 1
+#define ARCH_X86 1
+#define ARCH_X86_64 0
 #define HAVE_NEON 0
 #define HAVE_NEON_ASM 0
 #define HAVE_MIPS32 0
