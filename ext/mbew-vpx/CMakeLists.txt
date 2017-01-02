@@ -85,6 +85,21 @@ SET(MBEW_VPX_SRC_FILES
 	"libvpx/vp9/common/vp9_seg_common.c"
 	"libvpx/vp9/common/vp9_tile_common.c"
 	"libvpx/vp9/common/vp9_loopfilter.c"
+	"libvpx/vp9/common/vp9_common_data.c"
+	"libvpx/vp9/common/vp9_mvref_common.c"
+	"libvpx/vp9/common/vp9_quant_common.c"
+	"libvpx/vp9/common/vp9_reconinter.c"
+	"libvpx/vp9/common/vp9_reconintra.c"
+	"libvpx/vp9/common/vp9_scan.c"
+	"libvpx/vp9/common/vp9_thread_common.c"
+	"libvpx/vp9/common/x86/vp9_idct_intrin_sse2.c"
+	"libvpx/vp9/decoder/vp9_decodeframe.c"
+	"libvpx/vp9/decoder/vp9_decodemv.c"
+	"libvpx/vp9/decoder/vp9_decoder.c"
+	"libvpx/vp9/decoder/vp9_detokenize.c"
+	"libvpx/vp9/decoder/vp9_dsubexp.c"
+	"libvpx/vp9/decoder/vp9_dthread.c"
+	"libvpx/vp9/vp9_dx_iface.c"
 )
 
 SET(MBEW_VPX_ASM_FILES
@@ -117,42 +132,22 @@ SET(MBEW_VPX_ASM_FILES
 	"libvpx/vp8/common/x86/subpixel_ssse3.asm"
 	"libvpx/vp8/common/x86/mfqe_sse2.asm"
 	"libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
+	"libvpx/vpx_ports/x86_abi_support.asm"
 )
 
 SET(MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libvpx")
 
-# TODO: Use LIST(APPEND ...) here instead of SET(VAR ${VAR} ...)
 IF(NOT WIN32)
 	SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
 
-	SET(MBEW_VPX_SRC_FILES ${MBEW_VPX_SRC_FILES}
-		"libvpx/vp9/common/vp9_common_data.c"
-		"libvpx/vp9/common/vp9_mvref_common.c"
-		"libvpx/vp9/common/vp9_quant_common.c"
-		"libvpx/vp9/common/vp9_reconinter.c"
-		"libvpx/vp9/common/vp9_reconintra.c"
-		"libvpx/vp9/common/vp9_scan.c"
-		"libvpx/vp9/common/vp9_thread_common.c"
-		"libvpx/vp9/common/x86/vp9_idct_intrin_sse2.c"
-		"libvpx/vp9/decoder/vp9_decodeframe.c"
-		"libvpx/vp9/decoder/vp9_decodemv.c"
-		"libvpx/vp9/decoder/vp9_decoder.c"
-		"libvpx/vp9/decoder/vp9_detokenize.c"
-		"libvpx/vp9/decoder/vp9_dsubexp.c"
-		"libvpx/vp9/decoder/vp9_dthread.c"
-		"libvpx/vp9/vp9_dx_iface.c"
-		"os-linux/vpx_config.c"
-	)
-
-	SET(MBEW_VPX_ASM_FILES ${MBEW_VPX_ASM_FILES} "libvpx/vpx_ports/x86_abi_support.asm")
-	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-linux")
-
+	LIST(APPEND MBEW_VPX_SRC_FILES "os-linux/vpx_config.c")
+	LIST(APPEND MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/os-linux")
 ELSE()
 	SET(CMAKE_C_FLAGS "/arch:AVX")
-	SET(MBEW_VPX_SRC_FILES ${MBEW_VPX_SRC_FILES} "os-windows/vpx_config.c")
-	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-windows")
+	SET(YASM_PATH "" CACHE FILEPATH "Location of the YASM executable/binary.")
 
-	SET(YASM_PATH "" CACHE PATH "Location of the YASM executable/binary.")
+	LIST(APPEND MBEW_VPX_SRC_FILES "os-windows/vpx_config.c")
+	LIST(APPEND MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/os-windows")
 ENDIF()
 
 SET(MBEW_VPX_PUBLIC_HEADER_FILES)
