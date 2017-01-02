@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 	m = mbew_create(MBEW_SOURCE_FILE, argv[1]);
 
 	if(mbew_valid(m)) {
-		while(mbew_iterate(m, MBEW_ITERATE_VIDEO | MBEW_ITERATE_RGB)) {
+		while(mbew_iterate(m, 0)) {
 			mbew_num_t index = mbew_iter_index(m);
 			mbew_data_t type = mbew_iter_type(m);
 			mbew_ns_t timestamp = mbew_iter_timestamp(m);

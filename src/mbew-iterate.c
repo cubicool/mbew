@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 void mbew_iter_reset(mbew_t m) {
 	if(m->iter.packet) nestegg_free_packet(m->iter.packet);
@@ -105,14 +104,31 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 		}
 
 		else if(type == NESTEGG_TRACK_AUDIO && !mbew_flags(flags, MBEW_ITERATE_VIDEO)) {
+			/* ogg_packet op;
+
+			int samples;
+			int max = 4096 / m->audio.vorbis.info.channels;
+			float** pcm; */
+
 			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) _return(PACKET_DATA);
 
-			/* printf("AUDIO_PACKET => size(%lu)\n", size); */
+			/* op.packet = data;
+			op.bytes = size;
+
+			vorbis_synthesis(&m->audio.vorbis.block, &op);
+			vorbis_synthesis_blockin(&m->audio.vorbis.dsp_state, &m->audio.vorbis.block);
+
+			while((samples = vorbis_synthesis_pcmout(&m->audio.vorbis.dsp_state, &pcm))) {
+				int conv = samples <= max ? samples : max;
+			} */
 
 			m->iter.type = MBEW_DATA_AUDIO;
 
 			break;
 		}
+
+		/* TODO: These are getting really dirty. */
+		else nestegg_free_packet(m->iter.packet);
 	}
 
 	/* If 0 was returned, we've reached the end of the stream. */

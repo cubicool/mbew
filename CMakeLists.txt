@@ -10,9 +10,9 @@ SET(MBEW32 OFF CACHE BOOL "TEMPORARY 32bit/X86 flag")
 
 ADD_SUBDIRECTORY("ext/mbew-vpx")
 ADD_SUBDIRECTORY("ext/mbew-nestegg")
-# ADD_SUBDIRECTORY("ext/mbew-ogg")
-# ADD_SUBDIRECTORY("ext/mbew-vorbis")
-# ADD_SUBDIRECTORY("ext/mbew-opus")
+ADD_SUBDIRECTORY("ext/mbew-ogg")
+ADD_SUBDIRECTORY("ext/mbew-vorbis")
+ADD_SUBDIRECTORY("ext/mbew-opus")
 
 SET(MBEW_SRC_FILES
 	"src/mbew.c"
@@ -59,7 +59,7 @@ SOURCE_GROUP("Source Files" FILES ${MBEW_SRC_FILES})
 
 ADD_LIBRARY(mbew ${MBEW_LIBRARY_TYPE} ${MBEW_HEADER_FILES} ${MBEW_SRC_FILES})
 
-TARGET_LINK_LIBRARIES(mbew mbew-vpx mbew-nestegg)
+TARGET_LINK_LIBRARIES(mbew mbew-vpx mbew-nestegg mbew-vorbis)
 
 ADD_SUBDIRECTORY("examples")
 

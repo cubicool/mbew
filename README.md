@@ -117,4 +117,5 @@ with the toplevel library, and as such, easily embedded into the final shared
   mbew_iter_t instance (another private implementation) per iteration.
 - Choose tags for each submodule and use them (as opposed to simply using
   whatever was in the pull at the time).
+- Hide the CMake "creep" that comes from the Ogg and Vorbis external submodules.
 

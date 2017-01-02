@@ -3,10 +3,12 @@
 
 #include "mbew.h"
 #include "vpx/vpx_decoder.h"
-#include "vpx/vp8dx.h"
 #include "nestegg/nestegg.h"
+/* #include "vorbis/codec.h" */
 
 #include <stdarg.h>
+/* TODO: GET RID OF STDIO.H DEBUGGING! */
+#include <stdio.h>
 
 typedef struct _mbew_track_t {
 	mbew_bool_t init;
@@ -15,10 +17,24 @@ typedef struct _mbew_track_t {
 	mbew_codec_t codec;
 } mbew_track_t;
 
+typedef struct _mbew_datasize_t {
+	mbew_bytes_t data;
+	size_t size;
+} mbew_datasize_t;
+
 typedef struct _mbew_audio_t {
 	mbew_track_t track;
 
 	nestegg_audio_params params;
+
+	/* struct {
+		mbew_datasize_t headers[3];
+
+		vorbis_info info;
+		vorbis_comment comment;
+		vorbis_dsp_state dsp_state;
+		vorbis_block block;
+	} vorbis; */
 } mbew_audio_t;
 
 typedef struct _mbew_video_t {
