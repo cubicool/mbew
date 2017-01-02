@@ -4,3 +4,12 @@
 [submodule "ext/libvpx"]
 	path = ext/mbew-vpx/libvpx
 	url = https://chromium.googlesource.com/webm/libvpx
+[submodule "ext/mbew-vorbis/vorbis"]
+	path = ext/mbew-vorbis/vorbis
+	url = https://git.xiph.org/vorbis.git
+[submodule "ext/mbew-ogg/ogg"]
+	path = ext/mbew-ogg/ogg
+	url = https://git.xiph.org/ogg.git
+[submodule "ext/mbew-opus/opus"]
+	path = ext/mbew-opus/opus
+	url = https://git.xiph.org/opus.git

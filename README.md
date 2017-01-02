@@ -112,9 +112,9 @@ with the toplevel library, and as such, easily embedded into the final shared
 # Major TODO Items
 
 - Add Vorbis and Opus support.
-- Create C++14 wrapper code.
 - Support for preloading/caching and entire WebM stream for better performance.
 - Make mbew_iterate() threadsafe; this will involve having it return a unique
   mbew_iter_t instance (another private implementation) per iteration.
-- Improve the heinous MBEW_RETURN defines.
+- Choose tags for each submodule and use them (as opposed to simply using
+  whatever was in the pull at the time).
 
