@@ -1,7 +1,5 @@
 PROJECT(mbew-vpx)
 
-ENABLE_LANGUAGE(ASM_NASM)
-
 SET(MBEW_VPX_SRC_FILES
 	"libvpx/vpx/src/vpx_decoder.c"
 	"libvpx/vpx/src/vpx_encoder.c"
@@ -123,6 +121,7 @@ SET(MBEW_VPX_ASM_FILES
 
 SET(MBEW_VPX_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libvpx")
 
+# TODO: Use LIST(APPEND ...) here instead of SET(VAR ${VAR} ...)
 IF(NOT WIN32)
 	SET(CMAKE_C_FLAGS "-mmmx -mavx -mavx2 -msse -msse2 -msse3 -mssse3 -msse4.1")
 
@@ -147,10 +146,13 @@ IF(NOT WIN32)
 
 	SET(MBEW_VPX_ASM_FILES ${MBEW_VPX_ASM_FILES} "libvpx/vpx_ports/x86_abi_support.asm")
 	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-linux")
+
 ELSE()
 	SET(CMAKE_C_FLAGS "/arch:AVX")
 	SET(MBEW_VPX_SRC_FILES ${MBEW_VPX_SRC_FILES} "os-windows/vpx_config.c")
 	SET(MBEW_VPX_INCLUDE_DIRS ${MBEW_VPX_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/os-windows")
+
+	SET(YASM_PATH "" CACHE PATH "Location of the YASM executable/binary.")
 ENDIF()
 
 SET(MBEW_VPX_PUBLIC_HEADER_FILES)
@@ -167,9 +169,55 @@ SOURCE_GROUP("Header Files" FILES ${MBEW_VPX_HEADER_FILES})
 SOURCE_GROUP("Source Files" FILES ${MBEW_VPX_SRC_FILES})
 SOURCE_GROUP("ASM Files" FILES ${MBEW_VPX_ASM_FILES})
 
-ADD_LIBRARY(mbew-vpx STATIC
-	${MBEW_VPX_HEADER_FILES}
-	${MBEW_VPX_SRC_FILES}
-	${MBEW_VPX_ASM_FILES}
-)
+IF(NOT WIN32)
+	ENABLE_LANGUAGE(ASM_NASM)
 
+	ADD_LIBRARY(mbew-vpx STATIC
+		${MBEW_VPX_HEADER_FILES}
+		${MBEW_VPX_SRC_FILES}
+		${MBEW_VPX_ASM_FILES}
+	)
+
+# There is a known issue with assembly files and Visual Studio that CMake has not yet resolved (that
+# is, assembly support only works for "Makefile-based" setups). I have created a minimal custom
+# command for doing this below.
+ELSE()
+	# Covert our include directories into the -IFOO -IBAR format YASM expects.
+	FOREACH(ID ${MBEW_VPX_INCLUDE_DIRS})
+		LIST(APPEND MBEW_VPX_ASM_INC "-I${ID}")
+	ENDFOREACH()
+
+	# Iterate over each .asm file and create a custom build command for it.
+	FOREACH(AF ${MBEW_VPX_ASM_FILES})
+		GET_FILENAME_COMPONENT(AF_NAME ${AF} NAME_WE)
+		GET_FILENAME_COMPONENT(AF_ABS ${AF} ABSOLUTE)
+		GET_FILENAME_COMPONENT(AF_DIR ${AF} DIRECTORY)
+
+		SET(AF_BINDIR "CMakeFiles/mbew-vpx.dir/${AF_DIR}")
+		SET(AF_OBJ "${AF_BINDIR}/${AF_NAME}.asm.o")
+
+		# MESSAGE("==============================================")
+		# MESSAGE("  >> AF        = ${AF}")
+		# MESSAGE("  >> AF_NAME   = ${AF_NAME}")
+		# MESSAGE("  >> AF_ABS    = ${AF_ABS}")
+		# MESSAGE("  >> AF_DIR    = ${AF_DIR}")
+		# MESSAGE("  >> AF_BINDIR = ${AF_BINDIR}")
+		# MESSAGE("  >> AF_OBJ    = ${AF_OBJ}")
+
+		LIST(APPEND MBEW_VPX_ASM_OBJS "${AF_OBJ}")
+
+		ADD_CUSTOM_COMMAND(
+			OUTPUT "${AF_OBJ}"
+			PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory "${AF_BINDIR}"
+			COMMAND ${YASM_PATH} "${AF_ABS}" -f win64 -o "${AF_OBJ}" ${MBEW_VPX_ASM_INC}
+			DEPENDS "${AF_ABS}"
+			COMMENT "Custom YASM compilation ${AF_OBJ}"
+		)
+	ENDFOREACH()
+
+	ADD_LIBRARY(mbew-vpx STATIC
+		${MBEW_VPX_HEADER_FILES}
+		${MBEW_VPX_SRC_FILES}
+		${MBEW_VPX_ASM_OBJS}
+	)
+ENDIF()
