@@ -10,9 +10,9 @@ SET(MBEW32 OFF CACHE BOOL "TEMPORARY 32bit/X86 flag")
 
 ADD_SUBDIRECTORY("ext/mbew-vpx")
 ADD_SUBDIRECTORY("ext/mbew-nestegg")
-ADD_SUBDIRECTORY("ext/mbew-ogg")
-ADD_SUBDIRECTORY("ext/mbew-vorbis")
-ADD_SUBDIRECTORY("ext/mbew-opus")
+#ADD_SUBDIRECTORY("ext/mbew-ogg")
+#ADD_SUBDIRECTORY("ext/mbew-vorbis")
+#ADD_SUBDIRECTORY("ext/mbew-opus")
 
 SET(MBEW_SRC_FILES
 	"src/mbew.c"
