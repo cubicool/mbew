@@ -33,13 +33,15 @@ int main(int argc, char** argv) {
 				size
 			);
 
+			if(!size) continue;
+
 			fwrite(pcm16, size, 2, audio);
 
-			/* if(!mbew_valid(m)) {
+			if(!mbew_valid(m)) {
 				printf("Error during iteration: %s\n", mbew_string(mbew_status(m)));
 
 				break;
-			} */
+			}
 		}
 	}
 
