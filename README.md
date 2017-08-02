@@ -1,13 +1,22 @@
 # MBEW
 
-MBEW (pronounced "imbue") is a tidy, intuitive, robust C library for decoding
-WebM data. It's also the word "WebM" backwards.
+MBEW (pronounced "imbue") is a robust, API-rich C library for encoding and
+decoding WebM data. It's also the word "WebM" backwards.
+
+# Table Of Contents
+
+  * [Quickstart](#quickstart)
+    * [Naive Synchronization](#naive-sychronization)
+    * [Less Naive Synchronization](#less-naive-synchronization)
+  * [Compilation](#compilation)
+    * [Submodules](#submodules)
+  * [TODO](#todo)
 
 # Quickstart
 
-The first thing most people will want to do when experimenting with the library
-is open a WebM file and quickly loop through all of the juicy data it provides.
-Ignoring error-checking, something like this would work:
+The first thing most programmers will want to do when experimenting with the library
+is open a WebM file and quickly loop through all of the data therein. Ignoring the
+burden of any error-checking, something like this would work:
 
 ```c
 mbew_t m = mbew_create(MBEW_SRC_FILE, "/path/to/file.webm");
@@ -24,11 +33,14 @@ mbew_destroy(m);
 ```
 
 The code above opens a WebM file from disk and immediately begins iterating over
-it, frame-by-frame, while also passing the additional *MBEW_ITER_FORMAT_RGB*
-flag to make sure the library provides the data in a trivial format. We check
-the "type" of each frame during iteration, and ignore anything that isn't video
-data. However, without any synchronization logic, the `mbew_iterate()` loop runs
-as fast as the system will allow it; too fast!
+it, frame-by-frame, skipping any iteration that isn't video data. By passing the
+additional *MBEW_ITER_FORMAT_RGB* we instruct the library to convert each frame
+from the default YUV420 format into a simple RGBA color format, which can
+sometimes simplify interaction with other libraries. However, without any
+synchronization logic, the `mbew_iterate()` loop runs as fast as the system
+will allow it: too fast!
+
+## Naive Sychronization
 
 Our next example will add some very basic error-checking, as well as introducing
 us to the `MBEW_ITER_SYNC` flag. To keep things simple, we'll be using a
@@ -65,11 +77,13 @@ mbew_destroy(m);
 
 The 2nd example *still* calls the `mbew_iterate()` loop as fast as possible, but
 now we can be sure that the internal state of the iteration won't be updated
-until the pending frame's timestamp is exceeded.
+until the pending frames timestamp is exceeded.
+
+## Less Naive Synchronization
 
 So, how would we save even more cycles in our core loop? Well, there are
-numerous ways--mostly depending on whether you need blocking and non-blocking
-input--but let's try this small change, once again using a pseudeo-function that
+numerous ways--mostly depending on whether you need blocking or non-blocking
+input--but let's try this small change, once again using a psudeo-function that
 will "sleep" our process:
 
 ```c
@@ -78,7 +92,7 @@ mbew_ns_t start = nanoseconds();
 while(mbew_iterate(m, 0)) {
     /* Now instead of "peeking" into the stream and seeing whether it's
      * appropriate to continue we simply retrieve the number of nanoseconds
-     * between the the current elapsed time and the pending frame. */
+     * between the the current time and the pending frame. */
     mbew_ns_t now = nanoseconds() - start;
     mbew_ns_t until = mbew_iter_next(m, now));
 
@@ -89,9 +103,17 @@ while(mbew_iterate(m, 0)) {
 ```
 
 Take a look at the [examples](tree/master/examples/) included with libmbew for
-more information!
+more information.
 
-# Submodules
+# Compilation
+
+MBEW compilation is facilitated through CMake. In addition, custom
+CMakeLists.txt files for each submodule used in MBEW have also been added. This
+means that the dependencies themselves can be easily controlled and built along
+with the toplevel library and, as such, easily embedded into the final shared
+(or static) result.
+
+## Submodules
 
 MBEW currently requires the [NestEgg](https://github.com/kinetiknz/nestegg) and
 [LibVPX](http://www.webmproject.org/code/) submodules. These can be added
@@ -101,15 +123,7 @@ with the standard:
 
 The MBEW build system will statically integrate these projects.
 
-# Compilation
-
-MBEW compilation is facilitated through CMake. In addition, custom
-CMakeLists.txt files for each submodule used in MBEW have also been added. This
-means that the dependencies themselves can be easily controlled and built along
-with the toplevel library, and as such, easily embedded into the final shared
-(or static) result.
-
-# Major TODO Items
+# TODO
 
 - Add Vorbis and Opus support.
 - Support for preloading/caching and entire WebM stream for better performance.
@@ -118,4 +132,3 @@ with the toplevel library, and as such, easily embedded into the final shared
 - Choose tags for each submodule and use them (as opposed to simply using
   whatever was in the pull at the time).
 - Hide the CMake "creep" that comes from the Ogg and Vorbis external submodules.
-
