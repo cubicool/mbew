@@ -9,25 +9,20 @@ void mbew_iter_reset(mbew_t m) {
 	memset(&m->iter, 0, sizeof(mbew_iter_t));
 }
 
-#define _return(st) { m->status = MBEW_STATUS_##st; mbew_iter_reset(m); return MBEW_FALSE; }
-
 mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	int e;
 
 	/* In MBEW_ITERATE_SYNC mode, the user is expected to feed elapsed time data into the iteration
 	 * state before any data is yielded. This check simply short-circuits the iteration if the
 	 * pending timestamp hasn't been elapsed. */
-	if(
-		mbew_flags(flags, MBEW_ITERATE_SYNC) &&
-		(m->iter.elapsed < m->iter.timestamp)
-	) {
+	if(mbew_flags(flags, MBEW_ITERATE_SYNC) && (m->iter.elapsed < m->iter.timestamp)) {
 		m->iter.type = MBEW_DATA_SYNC;
 
 		return MBEW_TRUE;
 	}
 
 	/* Check for any conflicting flag bits. */
-	if(mbew_flags(flags, MBEW_ITERATE_VIDEO | MBEW_ITERATE_AUDIO)) _return(ITERATE_FLAGS);
+	if(mbew_flags(flags, MBEW_ITERATE_VIDEO | MBEW_ITERATE_AUDIO)) mbew_fail(ITERATE_FLAGS);
 
 	/* If iter is NULL, this is the first time iterate has been called. */
 	if(!m->iter.active) {
@@ -52,15 +47,15 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 
 		size_t size;
 
-		if(nestegg_packet_track(m->iter.packet, &track)) _return(PACKET_TRACK);
-		if(nestegg_packet_count(m->iter.packet, &count)) _return(PACKET_COUNT);
-		if(nestegg_packet_tstamp(m->iter.packet, &m->iter.timestamp)) _return(PACKET_TSTAMP);
-
-		/* TODO: Why does the following code ALWAYS fail?
-		if(nestegg_packet_duration(packet.ne, &packet.duration)) _return(PACKET_DURATION); */
+		if(nestegg_packet_track(m->iter.packet, &track)) mbew_fail(NESTEGG_PACKET_TRACK);
+		if(nestegg_packet_count(m->iter.packet, &count)) mbew_fail(NESTEGG_PACKET_COUNT);
+		if(nestegg_packet_tstamp(
+			m->iter.packet,
+			&m->iter.timestamp
+		)) mbew_fail(NESTEGG_PACKET_TSTAMP);
 
 		/* TODO: Handle the case where there are multiples. */
-		if(count > 1) _return(NOT_IMPLEMENTED);
+		if(count > 1) mbew_fail(NOT_IMPLEMENTED);
 
 		nestegg_packet_duration(m->iter.packet, &duration);
 
@@ -76,11 +71,11 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 			info.sz = sizeof(vpx_codec_stream_info_t);
 
 			/* Get a data pointer to the corresponding "data chunk." */
-			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) _return(PACKET_DATA);
+			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) mbew_fail(NESTEGG_PACKET_DATA);
 
 			vpx_codec_peek_stream_info(m->video.iface, data, size, &info);
 
-			if(vpx_codec_decode(&m->video.codec, data, size, NULL, 0)) _return(VPX_DECODE);
+			if(vpx_codec_decode(&m->video.codec, data, size, NULL, 0)) mbew_fail(VPX_CODEC_DECODE);
 
 			/* Assume there is only one frame.
 			 * TODO: Handle the case where there are multiples frames-in-frame. */
@@ -96,7 +91,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 				}
 			}
 
-			else _return(GET_FRAME);
+			else mbew_fail(VPX_CODEC_GET_FRAME);
 
 			m->iter.type = MBEW_DATA_VIDEO;
 
@@ -104,24 +99,55 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 		}
 
 		else if(type == NESTEGG_TRACK_AUDIO && !mbew_flags(flags, MBEW_ITERATE_VIDEO)) {
-			/* ogg_packet op;
+			ogg_packet op;
 
-			int samples;
+			int count;
+			int index = 0;
 			int max = 4096 / m->audio.vorbis.info.channels;
-			float** pcm; */
 
-			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) _return(PACKET_DATA);
+			float** pcm;
 
-			/* op.packet = data;
+			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) mbew_fail(NESTEGG_PACKET_DATA);
+
+			memset(&op, 0, sizeof(ogg_packet));
+
+			op.packet = data;
 			op.bytes = size;
 
-			vorbis_synthesis(&m->audio.vorbis.block, &op);
-			vorbis_synthesis_blockin(&m->audio.vorbis.dsp_state, &m->audio.vorbis.block);
+			if(vorbis_synthesis(&m->audio.vorbis.block, &op)) mbew_fail(NOT_IMPLEMENTED);
 
-			while((samples = vorbis_synthesis_pcmout(&m->audio.vorbis.dsp_state, &pcm))) {
-				int conv = samples <= max ? samples : max;
-			} */
+			if(vorbis_synthesis_blockin(
+				&m->audio.vorbis.dsp,
+				&m->audio.vorbis.block
+			)) mbew_fail(NOT_IMPLEMENTED);
 
+			while((count = vorbis_synthesis_pcmout(&m->audio.vorbis.dsp, &pcm))) {
+				int conv = count <= max ? count : max;
+				int c;
+
+				for(c = 0; c < m->audio.vorbis.info.channels; c++) {
+					int i;
+					int j;
+
+					float* samples = pcm[c];
+
+					for(i = 0, j = c; i < conv; i++, j += m->audio.vorbis.info.channels) {
+						int sample = samples[i] * 32767.0f;
+
+						if(sample > 32767) sample = 32767;
+
+						else if(sample < -32767) sample = -32767;
+
+						m->audio.data.pcm16[index + j] = (int16_t)(sample);
+					}
+				}
+
+				vorbis_synthesis_read(&m->audio.vorbis.dsp, conv);
+
+				index += conv;
+			}
+
+			m->audio.data.size = index;
 			m->iter.type = MBEW_DATA_AUDIO;
 
 			break;
@@ -139,7 +165,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	}
 
 	/* Anything else indicates an error occurred. */
-	else if(e < 0) _return(PACKET_READ);
+	else if(e < 0) mbew_fail(NESTEGG_READ_PACKET);
 
 	nestegg_free_packet(m->iter.packet);
 
@@ -147,6 +173,9 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	m->iter.index++;
 
 	return MBEW_TRUE;
+
+fail:
+	return MBEW_FALSE;
 }
 
 mbew_bool_t mbew_iter_active(mbew_t m) {
@@ -193,5 +222,13 @@ mbew_bytes_t* mbew_iter_yuv_planes(mbew_t m) {
 
 mbew_num_t* mbew_iter_yuv_stride(mbew_t m) {
 	return m->video.data.yuv.stride;
+}
+
+const int16_t* mbew_iter_pcm16(mbew_t m) {
+	return m->audio.data.pcm16;
+}
+
+mbew_num_t mbew_iter_pcm16_size(mbew_t m) {
+	return m->audio.data.size;
 }
 
