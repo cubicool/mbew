@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 		SDL_Init(SDL_INIT_AUDIO);
 		SDL_OpenAudio(&spec, NULL);
 
-		/* ... */
+		/* TODO: Describe this, and use some kind of of MBEW_DEFAULT enum instead of magic 0. */
 		mbew_iterate(m, 0);
 
 		SDL_PauseAudio(MBEW_FALSE);

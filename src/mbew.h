@@ -60,6 +60,8 @@ typedef enum _mbew_source_t {
 	/* Reads a WebM file from a buffer of memory. Two arguments are passed to mbew_create(): a
 	 * void* pointer to the memory location and a size_t argument indicating its size. */
 	MBEW_ENUM(SOURCE, MEMORY, 0x01)
+
+	/* MBEW_ENUM(SOURCE, MMAP, 0x02) */
 } mbew_source_t;
 
 #define MBEW_STATUS_ID 0x0000
