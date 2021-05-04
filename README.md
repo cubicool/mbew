@@ -34,7 +34,7 @@ mbew_destroy(m);
 
 The code above opens a WebM file from disk and immediately begins iterating over
 it, frame-by-frame, skipping any iteration that isn't video data. By passing the
-additional *MBEW_ITER_FORMAT_RGB* we instruct the library to convert each frame
+additional *MBEW_ITERATE_RGB* flag we instruct the library to convert each frame
 from the default YUV420 format into a simple RGBA color format, which can
 sometimes simplify interaction with other libraries. However, without any
 synchronization logic, the `mbew_iterate()` loop runs as fast as the system
@@ -51,7 +51,7 @@ for the current process:
 ```c
 mbew_t m = mbew_create(MBEW_SOURCE_FILE, "/path/to/file.webm");
 
-/* Any status execpt MBEW_STATUS_SUCCESS (0) indicates a failure has occurred
+/* Any status except MBEW_STATUS_SUCCESS (0) indicates a failure has occurred
  * somewhere within the mbew_t context. */
 if(mbew_valid(m)) {
     /* Grab a base "starting" time from our fake function. */
@@ -127,7 +127,7 @@ The MBEW build system will statically integrate these projects.
 # TODO
 
 - Add Vorbis and Opus support.
-- Support for preloading/caching and entire WebM stream for better performance.
+- Support for preloading/caching an entire WebM stream for better performance.
 - Make mbew_iterate() threadsafe; this will involve having it return a unique
   mbew_iter_t instance (another private implementation) per iteration.
 - Choose tags for each submodule and use them (as opposed to simply using
