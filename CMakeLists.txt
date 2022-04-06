@@ -69,3 +69,10 @@ TARGET_LINK_LIBRARIES(mbew mbew-vpx mbew-nestegg mbew-vorbis)
 
 ADD_SUBDIRECTORY("examples")
 
+# GCC
+# CMAKE_C_FLAGS_INIT="'-W -Wall -Wno-unused-parameter'"
+# CMAKE_CXX_FLAGS_INIT="'-W -Wall -Wno-unused-parameter'"
+
+# Clang
+# CMAKE_C_FLAGS_INIT="'-W -Wall -Wno-unused-parameter -Wno-error=unused-command-line-argument -Qunused-arguments'"
+# CMAKE_CXX_FLAGS_INIT="'-W -Wall -Wno-unused-parameter -Wno-error=unused-command-line-argument -Qunused-arguments'"
