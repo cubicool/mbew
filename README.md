@@ -1,7 +1,9 @@
 # MBEW
 
-MBEW (pronounced "imbue") is a robust, API-rich C library for encoding and
-decoding WebM data. It's also the word "WebM" backwards.
+MBEW (pronounced "imbue") is a robust, API-rich C library for decoding WebM
+data. It's also the word "WebM" backwards. **Support for encoding** is underway
+(I have a working local branch that needs to be cleaned up before being made
+public).
 
 # Table Of Contents
 
