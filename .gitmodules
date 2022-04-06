@@ -6,10 +6,10 @@
 	url = https://chromium.googlesource.com/webm/libvpx
 [submodule "ext/mbew-vorbis/vorbis"]
 	path = ext/mbew-vorbis/vorbis
-	url = https://git.xiph.org/vorbis.git
+	url = https://gitlab.xiph.org/xiph/vorbis.git
 [submodule "ext/mbew-ogg/ogg"]
 	path = ext/mbew-ogg/ogg
-	url = https://git.xiph.org/ogg.git
+	url = https://gitlab.xiph.org/xiph/ogg.git
 [submodule "ext/mbew-opus/opus"]
 	path = ext/mbew-opus/opus
-	url = https://git.xiph.org/opus.git
+	url = https://gitlab.xiph.org/xiph/opus.git
