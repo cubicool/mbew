@@ -105,7 +105,7 @@ while(mbew_iterate(m, 0)) {
 }
 ```
 
-Take a look at the [examples](tree/master/examples/) included with libmbew for
+Take a look at the [examples](examples/) included with libmbew for
 more information.
 
 # Compilation
