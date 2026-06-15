@@ -24,6 +24,10 @@ others can jump in as well!
 
 ## AI Assessment
 
+> I'm going to have `claude` itself insert an "assessment" of the state of
+> things. I *do* have the CLI on "friendly" mode for my own sanity, but we'll
+> see how it goes...
+
 The core library is in remarkably good shape for its age. The public API is
 clean and well thought-out: the iteration model with optional `MBEW_ITERATE_SYNC`
 and `MBEW_ITERATE_RGB` flags is genuinely ergonomic, and the nanosecond-based
@@ -44,6 +48,9 @@ the threaded decode pipeline that a proper video player needs.
 
 In short: solid foundation, the rough edges are all at the boundary between
 the library and the outside world.
+
+> I expected `claude` to join in on the "how does Claude identify?" joke, but
+> it/he/other did not. :) Maybe next update.
 
 # Quickstart
 
