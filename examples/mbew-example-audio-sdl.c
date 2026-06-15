@@ -1,6 +1,6 @@
 #include "mbew.h"
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 
 void fill_audio(void* userdata, Uint8* stream, int ssize) {
 	mbew_t m = (mbew_t)(userdata);

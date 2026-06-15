@@ -1,19 +1,22 @@
-PROJECT(mbew-vorbis)
+project(mbew-vorbis)
 
-ADD_SUBDIRECTORY("vorbis" EXCLUDE_FROM_ALL)
+# Satisfy vorbis's internal find_package(OGG) with our bundled submodule.
+set(OGG_FOUND TRUE)
+set(OGG_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ext/mbew-ogg/ogg/include")
+set(OGG_LIBRARIES mbew-ogg)
 
-SET(MBEW_VORBIS_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/vorbis/include")
+add_subdirectory("vorbis" EXCLUDE_FROM_ALL)
 
-FOREACH(VAR VORBIS_PUBLIC_HEADERS VORBIS_HEADERS VORBIS_SOURCES)
-	GET_DIRECTORY_PROPERTY(VAR_FILES DIRECTORY "vorbis/lib" DEFINITION ${VAR})
+foreach(VAR VORBIS_PUBLIC_HEADERS VORBIS_HEADERS VORBIS_SOURCES)
+    get_directory_property(VAR_FILES DIRECTORY "vorbis/lib" DEFINITION ${VAR})
 
-	FOREACH(VF ${VAR_FILES})
-		LIST(APPEND MBEW_VORBIS_FILES "vorbis/lib/${VF}")
-	ENDFOREACH()
-ENDFOREACH()
+    foreach(VF ${VAR_FILES})
+        list(APPEND MBEW_VORBIS_FILES "vorbis/lib/${VF}")
+    endforeach()
+endforeach()
 
-INCLUDE_DIRECTORIES(${MBEW_VORBIS_INCLUDE_DIRS})
+add_library(mbew-vorbis STATIC ${MBEW_VORBIS_FILES})
 
-ADD_LIBRARY(mbew-vorbis ${MBEW_VORBIS_FILES})
+target_include_directories(mbew-vorbis PUBLIC "${PROJECT_SOURCE_DIR}/vorbis/include")
 
-TARGET_LINK_LIBRARIES(mbew-vorbis mbew-ogg)
+target_link_libraries(mbew-vorbis PUBLIC mbew-ogg m)

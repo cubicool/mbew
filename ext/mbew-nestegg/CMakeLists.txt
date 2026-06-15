@@ -1,15 +1,8 @@
-PROJECT(mbew-nestegg)
+project(mbew-nestegg)
 
-SET(MBEW_NESTEGG_SRC_FILES "nestegg/src/nestegg.c")
-SET(MBEW_NESTEGG_HEADER_FILES "nestegg/include/nestegg/nestegg.h")
-SET(MBEW_NESTEGG_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/nestegg/include")
-
-INCLUDE_DIRECTORIES(${MBEW_NESTEGG_INCLUDE_DIRS})
-
-SOURCE_GROUP("Header Files" FILES ${MBEW_NESTEGG_HEADER_FILES})
-SOURCE_GROUP("Source Files" FILES ${MBEW_NESTEGG_SRC_FILES})
-
-ADD_LIBRARY(mbew-nestegg STATIC
-	${MBEW_NESTEGG_HEADER_FILES}
-	${MBEW_NESTEGG_SRC_FILES}
+add_library(mbew-nestegg STATIC
+    nestegg/include/nestegg/nestegg.h
+    nestegg/src/nestegg.c
 )
+
+target_include_directories(mbew-nestegg PUBLIC "nestegg/include")
