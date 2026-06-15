@@ -3,6 +3,9 @@
 MBEW (pronounced "imbue") is a robust, API-rich C library for decoding WebM
 data. It's also the word "WebM" backwards, which is *ultra-clever*.
 
+This library was created with sponsorship by
+[AlphaPixel](https://alphapixel.com).
+
 # Table Of Contents
 
   * [AI Disclosure](#ai-disclosure)

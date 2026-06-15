@@ -1,9 +1,0 @@
--Isrc
--Iext/mbew-vpx/libvpx
--Iext/mbew-nestegg/nestegg/include
--I/usr/include/cairo
--W
--Wall
--Werror
--Wno-unused-parameter
-
