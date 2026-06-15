@@ -1,18 +1,49 @@
 # MBEW
 
 MBEW (pronounced "imbue") is a robust, API-rich C library for decoding WebM
-data. It's also the word "WebM" backwards. **Support for encoding** is underway
-(I have a working local branch that needs to be cleaned up before being made
-public).
+data. It's also the word "WebM" backwards, which is *ultra-clever*.
 
 # Table Of Contents
 
+  * [AI Disclosure](#ai-disclosure)
   * [Quickstart](#quickstart)
     * [Naive Synchronization](#naive-sychronization)
     * [Less Naive Synchronization](#less-naive-synchronization)
   * [Compilation](#compilation)
     * [Submodules](#submodules)
   * [TODO](#todo)
+
+# AI Disclosure
+
+On June 15, 2026--after having finally jumped whole-hog into the AI/LLM
+mindset--I "turned Claude loose" on this library! It helped me fix a number of
+small bugs (from TEN YEARS LATER!), and modernize the CMake setup. There will
+likely be a *LOT* of updates in the coming days as he (it? how **does** Claude
+"identify?" :)) helps clean up the rough edges. I'll include the `CLAUDE.md` so
+others can jump in as well!
+
+## AI Assessment
+
+The core library is in remarkably good shape for its age. The public API is
+clean and well thought-out: the iteration model with optional `MBEW_ITERATE_SYNC`
+and `MBEW_ITERATE_RGB` flags is genuinely ergonomic, and the nanosecond-based
+timing design aged well. The C++ wrapper (`mbew.hpp`) is a nice touch that
+makes the OSG example read naturally.
+
+The main areas that need attention are in the *integration* layer rather than
+the decode layer itself. The current approach to feeding decoded frames to a
+renderer — converting YUV→RGB on the CPU and uploading the full frame every
+tick — works, but leaves significant performance on the table. A persistent-
+mapped PBO ring buffer with YUV-plane upload and shader-side color conversion
+would be the modern replacement, and the existing `mbew_iter_yuv_planes()` /
+`mbew_iter_yuv_stride()` API already exposes exactly what's needed for that.
+The other gap is thread safety: `mbew_iterate()` is single-threaded by design,
+which means the decode and render loops are coupled. The fix (returning a
+unique `mbew_iter_t` per call) is already on the TODO list and would unlock
+the threaded decode pipeline that a proper video player needs.
+
+In short: solid foundation, the rough edges are all at the boundary between
+the library and the outside world.
 
 # Quickstart
 
@@ -110,29 +141,47 @@ more information.
 
 # Compilation
 
-MBEW compilation is facilitated through CMake. In addition, custom
-CMakeLists.txt files for each submodule used in MBEW have also been added. This
-means that the dependencies themselves can be easily controlled and built along
-with the toplevel library and, as such, easily embedded into the final shared
-(or static) result.
+MBEW compilation is facilitated through CMake (3.10+). Custom CMakeLists.txt
+files for each submodule use modern target-based CMake, so all include paths
+and link dependencies propagate transitively — no manual configuration needed.
+
+On Linux you will also need **yasm** installed (`sudo apt install yasm`). The
+libvpx assembly code is not compatible with NASM 2.15+ due to stricter opcode
+checking in newer versions; yasm handles the old `x86inc.asm` macro style
+without issues.
+
+```bash
+mkdir BUILD && cd BUILD
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+```
 
 ## Submodules
 
-MBEW currently requires the [NestEgg](https://github.com/kinetiknz/nestegg) and
-[LibVPX](http://www.webmproject.org/code/) submodules. These can be added
-with the standard:
+MBEW bundles all of its dependencies as git submodules:
+
+- [NestEgg](https://github.com/kinetiknz/nestegg) — WebM demuxer
+- [LibVPX](http://www.webmproject.org/code/) — VP8/VP9 decoder
+- [libogg](https://gitlab.xiph.org/xiph/ogg) — Ogg container (required by Vorbis)
+- [libvorbis](https://gitlab.xiph.org/xiph/vorbis) — Vorbis audio decoder
+- [Opus](https://gitlab.xiph.org/xiph/opus) — Opus audio decoder
+
+Initialize them all with:
 
     git submodule update --init
 
-The MBEW build system will statically integrate these projects.
+The MBEW build system will statically integrate all of these projects.
 
 # TODO
 
-- Add Vorbis and Opus support.
+- ~~Add Vorbis and Opus support.~~ *(submodules integrated)*
 - Support for preloading/caching an entire WebM stream for better performance.
-- Make mbew_iterate() threadsafe; this will involve having it return a unique
-  mbew_iter_t instance (another private implementation) per iteration.
+- Make `mbew_iterate()` threadsafe; this will involve having it return a unique
+  `mbew_iter_t` instance (another private implementation) per iteration.
+- Implement a modern GL4 playback pipeline: persistent-mapped PBO ring buffer,
+  threaded decode, and YUV-plane upload with shader-side color conversion.
+- Rewrite `mbew-example-video-sdl` for SDL2 (the original used SDL1-only APIs
+  that were removed: `SDL_SetVideoMode`, `SDL_CreateYUVOverlay`, etc.).
 - Choose tags for each submodule and use them (as opposed to simply using
   whatever was in the pull at the time).
-- Hide the CMake "creep" that comes from the Ogg and Vorbis external submodules.
 - Implement what `play -t raw -r 48k -e signed -b 16 -c 1 audio.pcm` does.

@@ -1,17 +1,15 @@
-PROJECT(mbew-ogg)
+project(mbew-ogg)
 
-ADD_SUBDIRECTORY("ogg" EXCLUDE_FROM_ALL)
+add_subdirectory("ogg" EXCLUDE_FROM_ALL)
 
-SET(MBEW_OGG_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/ogg/include")
+foreach(VAR OGG_HEADERS OGG_SOURCES)
+    get_directory_property(VAR_FILES DIRECTORY "ogg" DEFINITION ${VAR})
 
-FOREACH(VAR OGG_HEADERS OGG_SOURCES)
-	GET_DIRECTORY_PROPERTY(VAR_FILES DIRECTORY "ogg" DEFINITION ${VAR})
+    foreach(VF ${VAR_FILES})
+        list(APPEND MBEW_OGG_FILES "ogg/${VF}")
+    endforeach()
+endforeach()
 
-	FOREACH(VF ${VAR_FILES})
-		LIST(APPEND MBEW_OGG_FILES "ogg/${VF}")
-	ENDFOREACH()
-ENDFOREACH()
+add_library(mbew-ogg STATIC ${MBEW_OGG_FILES})
 
-INCLUDE_DIRECTORIES(${MBEW_OGG_INCLUDE_DIRS})
-
-ADD_LIBRARY(mbew-ogg ${MBEW_OGG_FILES})
+target_include_directories(mbew-ogg PUBLIC "${PROJECT_SOURCE_DIR}/ogg/include")

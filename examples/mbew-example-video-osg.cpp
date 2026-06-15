@@ -5,8 +5,33 @@
 #include <osg/TextureRectangle>
 #include <osg/Geode>
 #include <osg/BlendFunc>
+#include <osg/Program>
+#include <osg/Shader>
+#include <osg/Uniform>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
+
+static const char* VERT_SRC = R"(
+#version 330
+in vec4 osg_Vertex;
+in vec4 osg_MultiTexCoord0;
+uniform mat4 osg_ModelViewProjectionMatrix;
+out vec2 texCoord;
+void main() {
+    gl_Position = osg_ModelViewProjectionMatrix * osg_Vertex;
+    texCoord = osg_MultiTexCoord0.xy;
+}
+)";
+
+static const char* FRAG_SRC = R"(
+#version 330
+in vec2 texCoord;
+out vec4 fragColor;
+uniform sampler2DRect tex;
+void main() {
+    fragColor = texture(tex, texCoord);
+}
+)";
 
 #include <iostream>
 
@@ -129,9 +154,15 @@ int main(int argc, char** argv) {
 	texture->setImage(image);
 	texture->setDataVariance(osg::Object::DYNAMIC);
 
+	osg::Program* program = new osg::Program();
+	program->addShader(new osg::Shader(osg::Shader::VERTEX, VERT_SRC));
+	program->addShader(new osg::Shader(osg::Shader::FRAGMENT, FRAG_SRC));
+
 	osg::StateSet* state = geom->getOrCreateStateSet();
 
-	state->setTextureAttributeAndModes( 0, texture, osg::StateAttribute::ON);
+	state->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+	state->setAttributeAndModes(program);
+	state->addUniform(new osg::Uniform("tex", 0));
 	state->setMode(GL_BLEND, osg::StateAttribute::ON);
 	state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
