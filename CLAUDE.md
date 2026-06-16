@@ -48,7 +48,7 @@ target-based CMake (3.10+ minimum). Key things to know:
 | `mbew-example-src-memory` | ✅ | In-memory source |
 | `mbew-example-strings` | ✅ | Status string API |
 | `mbew-example-video-cairo` | ✅ | Decodes every frame to PNG via Cairo |
-| `mbew-example-video-osg` | ✅ | Live playback in an OSG window |
+| `mbew-example-video-osg` | ✅ | Live playback in an OSG window. Upload modernized to a persistent-mapped PBO ring + DSA immutable texture storage (see below); still `osg::TextureRectangle`/`sampler2DRect`, decode still synchronous |
 | `mbew-example-audio-sdl` | ✅ | Audio via SDL2 (include updated from SDL1) |
 | `mbew-example-audio-ao` | ⚠️ | Skipped — libao not installed |
 | `mbew-example-video-sdl` | ✅ | Rewritten for SDL3 (was SDL1-only: SDL_SetVideoMode, SDL_CreateYUVOverlay). Uploads mbew's YUV planes directly via SDL_UpdateYUVTexture against SDL_PIXELFORMAT_IYUV — no plane swap needed since mbew's [Y,U,V] order matches IYUV exactly |
@@ -74,53 +74,115 @@ There is no equivalent need to swap `l`/`r`: column order already agrees
 between the buffer and the `s` coordinate. A prior version of this example
 swapped `l`/`r` too, which mirrored the video horizontally.
 
-The current playback approach is unoptimized (see Next Session below).
+## GL4 video playback upload (done 2026-06-16)
 
-## Next session: modern GL4 video playback
+The old per-frame `image->dirty()` CPU→GPU upload (decoding synchronously on
+the render thread) was replaced with a persistent-mapped PBO ring + DSA
+immutable texture storage, still decoding synchronously — see "Next session"
+below for what's still deferred.
 
-The current OSG example does a full CPU→GPU texture upload every frame via
-`image->dirty()`, and decodes synchronously on the render thread. The plan
-for next session is to implement a proper modern GL4 playback pipeline:
+- `MBEWUpdateCallback` → `MBEWDrawCallback` (an `osg::Drawable::DrawCallback`,
+  not `UpdateCallback`). GL calls need a current context, which
+  `osg::RenderInfo` guarantees during the draw traversal but the update
+  traversal does not — relying on that previously only worked by accident
+  under `SingleThreaded` viewer mode.
+- 3-slot PBO ring, each `glBufferStorage`'d with `GL_MAP_WRITE_BIT |
+  GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT` and mapped once via
+  `glMapBufferRange`, kept mapped for the program's lifetime.
+  `glFenceSync`/`glClientWaitSync` guard slot reuse.
+- Immutable texture storage via `glTextureStorage2D` (DSA), uploaded per-frame
+  via `glTexSubImage2D` reading from the bound `GL_PIXEL_UNPACK_BUFFER` (this
+  build's OSG `GLExtensions` table exposes `glTextureStorage2D` but not
+  `glTextureSubImage2D`/`glCreateTextures`/`glBindTextureUnit` — those calls
+  use plain core GL instead of the extension dispatch table).
+- **Texture type deliberately unchanged**: stayed on `osg::TextureRectangle`/
+  `sampler2DRect` rather than switching to `Texture2D`/`sampler2D`. Discussed
+  cross-project with `osgSlug` (lives at `~/dev/osgSlug`, used by the separate
+  `~/dev/slughorn` project, which wants to eventually sample mbew's decoded
+  frame as a HUD video-fill) — `osgSlug`'s `Atlas.cpp:499-503` already reserves
+  texture units 0-4 for its own curve/band/gradient/msdf/effect textures, so a
+  future video-fill binding should land on unit 5+ regardless of target type.
+  The GL4 PBO/DSA mechanics don't care about `GL_TEXTURE_RECTANGLE` vs.
+  `GL_TEXTURE_2D` — only the consuming shader's coordinate convention differs
+  (unnormalized pixels + no mipmap/repeat, vs. normalized `[0,1]`). A future
+  `osgSlug` binding will need its own `sampler2DRect` uniform + UV-by-texture-
+  size scaling rather than being a drop-in alongside its other `sampler2D`
+  units — a small, contained difference, not a redesign.
+- **Two bugs hit and fixed during this pass, both worth remembering**:
+  1. `drawable->osg::Drawable::drawImplementation(renderInfo)` (explicit
+     base-class qualification) suppresses virtual dispatch — it calls
+     `Drawable`'s empty stub instead of `Geometry`'s real draw call, so
+     *nothing* renders, not even an unrelated debug shader. Fix: drop the
+     qualifier (`drawable->drawImplementation(renderInfo)`) so the call
+     dispatches virtually to the actual `Geometry` override.
+  2. Leaving `GL_PIXEL_UNPACK_BUFFER` bound to our PBO after the upload
+     corrupted `osgViewer::StatsHandler`'s text (its font-atlas glyph upload
+     read garbage from our still-bound/mapped PBO instead of the real glyph
+     bitmap — a one-time corruption that then persisted, since glyphs aren't
+     re-uploaded once "successfully" rasterized). `GL_PIXEL_UNPACK_BUFFER` is
+     a single global binding point, not scoped to one texture/unit; OSG's own
+     `PixelDataBufferObject` (`src/osg/BufferObject.cpp`) always rebinds it to
+     `0` right after use for exactly this reason. Fix: `glBindBuffer(
+     GL_PIXEL_UNPACK_BUFFER, 0)` immediately after our own `glTexSubImage2D`
+     call. General lesson: any raw GL call mixed into OSG-driven rendering
+     must leave *global* (non-per-attribute) binding points back at their
+     default, since OSG's own state-application code doesn't expect them to
+     have moved.
+- Verified: old (pre-PBO) vs. new approach showed near-identical total
+  Update+Draw time on `data/reticle.webm` (a single-digit-KB/frame clip too
+  light to show a real signal) — Update dropped, Draw rose by about the same
+  amount, since the same upload work just moved from the update traversal to
+  the draw traversal. GPU time was identical in both. The CPU→GPU transfer
+  itself is unavoidable as long as decode is on the CPU; this pass doesn't
+  reduce that cost, it lays groundwork (the ring + fence) that only pays off
+  once decode is threaded (see below).
 
-### Goals
+## Next session: threaded decode + YUV shader conversion
 
-1. **Threaded decode** — move `mbew_iterate()` onto a dedicated thread. The
-   mbew TODO list already calls this out (making iterate threadsafe, returning
-   a unique `mbew_iter_t` per iteration). Feed decoded frames into a ring
-   buffer shared with the render thread.
+Two goals carried over from the original GL4 plan, deferred during the PBO/DSA
+pass above (per the same `osgSlug`-side discussion: get single-threaded PBO
+ring + DSA upload correct first, threaded decode is a separable follow-up):
 
-2. **Persistent-mapped PBO ring buffer** — allocate 3 PBOs with
-   `glBufferStorage(GL_PIXEL_UNPACK_BUFFER, ..., GL_MAP_WRITE_BIT |
-   GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)`. Keep them permanently
-   mapped. The decode thread writes directly into GPU-visible memory — no
-   `glMapBuffer`/`glUnmapBuffer` round trips. Use `glFenceSync` to guard
-   slot reuse.
-
-   ```
-   PBO[0] → uploading frame N
-   PBO[1] → GPU consuming frame N-1
-   PBO[2] → decoder writing frame N+1
-   ```
-
-3. **YUV upload + shader conversion** — instead of `MBEW_ITERATE_RGB`
+1. **Threaded decode** — move `mbew_iterate()` onto a dedicated thread,
+   mirroring `mbew-example-video-sdl-threaded.c`'s ring-buffer pattern. This
+   is what makes the PBO ring's 3-slot/fence-sync machinery actually pay off:
+   the decode thread can write frame N+1 into a free PBO slot while the GPU is
+   still consuming frame N, instead of the upload sitting on the critical path
+   synchronously like it does today.
+2. **YUV upload + shader conversion** — instead of `MBEW_ITERATE_RGB`
    (CPU-side YUV→RGB), upload the raw YUV planes directly as three separate
-   `GL_RED` / `GL_RG` textures and do BT.601/BT.709 matrix conversion in the
-   fragment shader. Eliminates the CPU conversion cost and cuts upload
-   bandwidth roughly in half.
-
-4. **DSA (`glTextureStorage2D` / `glTextureSubImage2D`)** — no bind-to-modify;
-   cleaner and more explicit than the OSG `osg::Image` dirty-flag approach.
-
-### Key GL4 APIs
-
-- `glBufferStorage` + `GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT`
-- `glMapBufferRange` with `GL_MAP_UNSYNCHRONIZED_BIT`
-- `glFenceSync` / `glClientWaitSync`
-- `glTextureStorage2D` / `glTextureSubImage2D` (DSA)
-- `glTexSubImage2D` to kick the PBO→texture DMA
+   `GL_RED`/`GL_RG` textures and do BT.601/BT.709 matrix conversion in the
+   fragment shader. Cuts upload bandwidth roughly in half and removes the CPU
+   conversion cost. Optional polish per the `osgSlug`-side feedback, not a
+   hard requirement — `osgSlug` doesn't care whether mbew resolves to RGB or
+   exposes raw YUV planes, it just samples one final color either way.
 
 ### Note on `GL_TEXTURE_BUFFER`
 
 `osg::TextureBuffer` / `GL_TEXTURE_BUFFER` is *not* the right tool here —
 it's for binding a raw buffer as a 1D texel array for random access in
 shaders (lookup tables, structured data), not for 2D image data.
+
+## Future idea: GPU-side decode
+
+Not currently feasible without a real architecture change: `libvpx` is a
+software-only decoder (SIMD-optimized for CPU, no GPU offload path or backend
+switch). True hardware decode would mean bypassing `libvpx` for an alternate,
+platform-specific backend — VA-API (Linux/Intel/AMD, has VP8/VP9 decode
+profiles and `vaExportSurfaceHandle` for EGL/GL texture interop with zero CPU
+readback) or NVDEC (NVIDIA, would need CUDA↔GL interop) — with `libvpx`
+staying as the universal software fallback. `nestegg` (the demuxer) is
+unaffected either way; only the decode step would branch.
+
+Worth studying **Bink Video** (RAD Game Tools/Epic Games Tools) as prior art
+before attempting this — it's the de facto standard for video in shipped
+games. Bink can't use fixed-function hardware decode blocks at all (those
+only support standardized bitstreams, and Bink's format is proprietary), so
+its "BinkGPU" mode instead splits the pipeline: CPU does the bitstream/entropy
+decode, then motion compensation, transform/reconstruction, and YUV→RGB
+conversion all run as GPU compute shaders. Published numbers: ~4ms CPU-only
+for a 4K frame, ~1.4-2.3ms with GPU assist (roughly 2-4x). That's the same
+idea as the YUV-shader-conversion goal above, just taken further — worth
+revisiting once threaded decode lands, as inspiration for how much of the
+post-bitstream-decode math could move to compute shaders rather than just
+color conversion.

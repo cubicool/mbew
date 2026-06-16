@@ -38,10 +38,11 @@ if(NOT WIN32)
 
     # OpenSceneGraph
     find_package(OpenSceneGraph QUIET COMPONENTS osgViewer)
+    find_package(OpenGL QUIET)
     if(OPENSCENEGRAPH_FOUND)
         add_executable(mbew-example-video-osg mbew-example-video-osg.cpp)
         target_include_directories(mbew-example-video-osg PRIVATE ${OPENSCENEGRAPH_INCLUDE_DIRS})
-        target_link_libraries(mbew-example-video-osg PRIVATE mbew ${OPENSCENEGRAPH_LIBRARIES} pthread m)
+        target_link_libraries(mbew-example-video-osg PRIVATE mbew ${OPENSCENEGRAPH_LIBRARIES} OpenGL::GL pthread m)
     else()
         message(STATUS "OpenSceneGraph not found; skipping OSG example")
     endif()
