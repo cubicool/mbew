@@ -141,13 +141,17 @@ int main(int argc, char** argv) {
 	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
 	osg::TextureRectangle* texture = new osg::TextureRectangle();
+	// TextureRectangle coords are unnormalized pixels, (0,0) at bottom-left. mbew's RGB
+	// buffer is row-major top-down, so the vertical (b/t) swap below compensates for that
+	// mismatch with GL's bottom-up texture convention. There's no equivalent need to swap
+	// left/right; column order already agrees between the buffer and texture s coordinate.
 	osg::Geometry* geom = osg::createTexturedQuadGeometry(
 		osg::Vec3(0.0f, 0.0f, 0.0f),
 		osg::Vec3(width, 0.0f, 0.0f),
 		osg::Vec3(0.0f, 0.0f, height),
-		width,
-		height,
 		0.0f,
+		height,
+		width,
 		0.0f
 	);
 

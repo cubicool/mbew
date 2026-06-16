@@ -1,68 +1,7 @@
 #include "mbew.h"
 
-#include <SDL/SDL.h>
-
-/* Return MBEW_TRUE if the video plays through in its entirety and MBEW_FALSE if ESC is pressed to
- * interrupt the application. */
-mbew_bool_t play_video(mbew_t m, SDL_Overlay* overlay, SDL_Rect* rect) {
-	mbew_num_t start = SDL_GetTicks();
-
-	printf("Starting at: %ums\n", start);
-
-	while(mbew_iterate(m, MBEW_ITERATE_VIDEO)) {
-		SDL_Event event;
-
-		mbew_num_t now = SDL_GetTicks() - start;
-		mbew_num_t timestamp = mbew_iter_timestamp(m) / 1000000;
-		mbew_bytes_t* planes = mbew_iter_yuv_planes(m);
-		mbew_num_t* stride = mbew_iter_yuv_stride(m);
-		mbew_num_t y;
-
-		printf(
-			"Index=%u Time(now)=%ums Time(frame)=%ums ",
-			mbew_iter_index(m),
-			now,
-			timestamp
-		);
-
-		if(now < timestamp) {
-			printf("[sleeping for: %ums]", timestamp - now);
-
-			SDL_Delay(timestamp - now);
-		}
-
-		printf("\n");
-
-		SDL_LockYUVOverlay(overlay);
-
-		for(y = 0; y < rect->h; ++y) memcpy(
-			overlay->pixels[0] + (overlay->pitches[0] * y),
-			planes[0] + (stride[0] * y),
-			overlay->pitches[0]
-		);
-
-		for(y = 0; y < (rect->h >> 1); ++y) memcpy(
-			overlay->pixels[1] + (overlay->pitches[1] * y),
-			planes[2] + (stride[2] * y),
-			overlay->pitches[1]
-		);
-
-		for(y = 0; y < (rect->h >> 1); ++y) memcpy(
-			overlay->pixels[2] + (overlay->pitches[2] * y),
-			planes[1] + (stride[1] * y),
-			overlay->pitches[2]
-		);
-
-		SDL_UnlockYUVOverlay(overlay);
-		SDL_DisplayYUVOverlay(overlay, rect);
-
-		if(SDL_PollEvent(&event) == 1) {
-			if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) return MBEW_FALSE;
-		}
-	}
-
-	return MBEW_TRUE;
-}
+#include <SDL3/SDL.h>
+#include <stdio.h>
 
 int main(int argc, char** argv) {
 	mbew_t m;
@@ -79,28 +18,74 @@ int main(int argc, char** argv) {
 		mbew_num_t width = mbew_property(m, MBEW_PROPERTY_VIDEO_WIDTH).num;
 		mbew_num_t height = mbew_property(m, MBEW_PROPERTY_VIDEO_HEIGHT).num;
 
-		SDL_Surface* surface = NULL;
-		SDL_Overlay* overlay = NULL;
-		SDL_Rect rect;
+		SDL_Window* window;
+		SDL_Renderer* renderer;
+		SDL_Texture* texture;
+		Uint64 start;
+		int running = 1;
 
 		SDL_Init(SDL_INIT_VIDEO);
 
-		surface = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE);
-		overlay = SDL_CreateYUVOverlay(width, height, SDL_YV12_OVERLAY, surface);
+		window = SDL_CreateWindow("mbew-example-video-sdl", width, height, 0);
+		renderer = SDL_CreateRenderer(window, NULL);
 
-		rect.x = 0;
-		rect.y = 0;
-		rect.w = width;
-		rect.h = height;
+		/* mbew_iter_yuv_planes() yields planes in [Y, U, V] order, which matches
+		 * SDL_PIXELFORMAT_IYUV directly--no plane swap needed. */
+		texture = SDL_CreateTexture(
+			renderer,
+			SDL_PIXELFORMAT_IYUV,
+			SDL_TEXTUREACCESS_STREAMING,
+			width,
+			height
+		);
 
-		while(play_video(m, overlay, &rect)) {
-			printf("Finished a single playthrough; resetting.\n");
+		SDL_SetRenderVSync(renderer, 1);
 
-			if(!mbew_reset(m)) break;
+		start = SDL_GetTicksNS();
+
+		while(running) {
+			SDL_Event event;
+
+			while(SDL_PollEvent(&event)) {
+				if(event.type == SDL_EVENT_QUIT) running = 0;
+
+				if(event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) running = 0;
+			}
+
+			if(mbew_iterate(m, MBEW_ITERATE_VIDEO | MBEW_ITERATE_SYNC)) {
+				if(mbew_iter_sync(m, SDL_GetTicksNS() - start)) {
+					mbew_bytes_t* planes = mbew_iter_yuv_planes(m);
+					mbew_num_t* stride = mbew_iter_yuv_stride(m);
+
+					SDL_UpdateYUVTexture(
+						texture,
+						NULL,
+						planes[0],
+						stride[0],
+						planes[1],
+						stride[1],
+						planes[2],
+						stride[2]
+					);
+				}
+			}
+
+			else {
+				printf("Finished a single playthrough; resetting.\n");
+
+				if(!mbew_reset(m)) break;
+
+				start = SDL_GetTicksNS();
+			}
+
+			SDL_RenderClear(renderer);
+			SDL_RenderTexture(renderer, texture, NULL, NULL);
+			SDL_RenderPresent(renderer);
 		}
 
-		SDL_FreeYUVOverlay(overlay);
-		SDL_FreeSurface(surface);
+		SDL_DestroyTexture(texture);
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
 
@@ -110,4 +95,3 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
-

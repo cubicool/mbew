@@ -15,16 +15,22 @@ add_mbew_example(src-memory c)
 add_mbew_example(strings c)
 
 if(NOT WIN32)
-    # SDL2
-    # NOTE: mbew-example-video-sdl uses SDL1-only APIs (SDL_SetVideoMode,
-    # SDL_CreateYUVOverlay) that were removed in SDL2 and needs a rewrite.
-    # Only the audio example is built here.
+    # SDL2 (audio example)
     find_package(SDL2 QUIET)
     if(SDL2_FOUND)
         add_executable(mbew-example-audio-sdl mbew-example-audio-sdl.c)
         target_link_libraries(mbew-example-audio-sdl PRIVATE mbew SDL2::SDL2 pthread m)
     else()
-        message(STATUS "SDL2 not found; skipping SDL examples")
+        message(STATUS "SDL2 not found; skipping mbew-example-audio-sdl")
+    endif()
+
+    # SDL3 (video example)
+    find_package(SDL3 QUIET)
+    if(SDL3_FOUND)
+        add_executable(mbew-example-video-sdl mbew-example-video-sdl.c)
+        target_link_libraries(mbew-example-video-sdl PRIVATE mbew SDL3::SDL3 pthread m)
+    else()
+        message(STATUS "SDL3 not found; skipping mbew-example-video-sdl")
     endif()
 
     # OpenSceneGraph
