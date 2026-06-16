@@ -8,8 +8,16 @@
 #include <osg/Program>
 #include <osg/Shader>
 #include <osg/Uniform>
+#include <osg/GLExtensions>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
+
+/* osg/GL only pulls in <GL/gl.h>; GL_MAP_PERSISTENT_BIT/GL_MAP_COHERENT_BIT (ARB_buffer_storage)
+ * aren't declared there and need glext.h directly. */
+#include <GL/glext.h>
+
+#include <cstring>
+#include <iostream>
 
 static const char* VERT_SRC = R"(
 #version 330
@@ -33,76 +41,137 @@ void main() {
 }
 )";
 
-#include <iostream>
+static const int RING_CAPACITY = 3;
 
-class MBEWUpdateCallback: public osg::Drawable::UpdateCallback {
+/* Uploads each decoded frame via a persistent-mapped PBO ring (3 slots, matching the
+ * PBO[uploading]/PBO[GPU-consuming]/PBO[next-write] split) and DSA immutable texture storage,
+ * instead of OSG's osg::Image dirty-flag path. GL calls require a current context, which
+ * osg::RenderInfo guarantees during the draw traversal but osg::Drawable::UpdateCallback does
+ * not--so this is a DrawCallback rather than an UpdateCallback. DrawCallback::drawImplementation
+ * is const, hence the mutable GL/ring state below. */
+class MBEWDrawCallback: public osg::Drawable::DrawCallback {
 public:
-	MBEWUpdateCallback(mbew::Context m, mbew::num_t width, mbew::num_t height):
+	MBEWDrawCallback(mbew::Context m, mbew::num_t width, mbew::num_t height):
 	_m(m),
 	_width(width),
 	_height(height) {
 	}
 
-	virtual void update(osg::NodeVisitor* nv, osg::Drawable* drawable) {
-		osg::Image* image = _getImage(drawable);
+	virtual void drawImplementation(osg::RenderInfo& renderInfo, const osg::Drawable* drawable) const {
+		osg::GLExtensions* ext = osg::GLExtensions::Get(renderInfo.getContextID(), true);
 
-		if(!image) return;
+		if(!_initialized && !_init(ext)) {
+			OSG_WARN << "Failed to initialize!" << std::endl;
 
-		// This call to iterate() will only yield video data (mbew::Iterate::VIDEO), in addition to
-		// requiring the caller to update the internal time state (mbew::Iterate::SYNC). When the
-		// SYNC flag is specified, the corresponding iter.sync() method should be called once per
-		// iteration, accepting the amount of time--in nanoseconds--that has elapsed since begining
-		// the iteration. If the elapsed time equals or exceeds the pending frames timestamp,
-		// iter.sync() will return true, instructing the caller to FULLY process this iteration
-		// before the frame is advanced.
-		//
-		// The iterate() method itself will return true until either an error condition is met
-		// (which can be queried via valid()/status()) or a single, complete iteration has been
-		// performed.
-		if(_m->iterate(mbew::Iterate::VIDEO | mbew::Iterate::RGB | mbew::Iterate::SYNC)) {
-			if(!_m->iter.sync(_time.elapsedTime_n())) return;
-
-			image->setImage(
-				_width,
-				_height,
-				1,
-				GL_RGBA,
-				GL_BGRA,
-				GL_UNSIGNED_BYTE,
-				_m->iter.rgb(),
-				osg::Image::NO_DELETE
-			);
-
-			image->dirty();
+			return;
 		}
 
-		// Once a full iteration completes, reset both the context and the timer.
+		// See mbew-example-video-osg.cpp's sibling examples for the iterate()/sync() contract;
+		// unchanged from the CPU-upload version this replaces.
+		if(_m->iterate(mbew::Iterate::VIDEO | mbew::Iterate::RGB | mbew::Iterate::SYNC)) {
+			if(_m->iter.sync(_time.elapsedTime_n())) _upload(ext);
+		}
+
 		else {
 			_m->reset();
 
 			_time.reset();
 		}
+
+		drawable->drawImplementation(renderInfo);
 	}
 
 protected:
-	osg::Image* _getImage(osg::Drawable* drawable) {
-		osg::StateSet* ss = drawable->getStateSet();
+	bool _init(osg::GLExtensions* ext) const {
+		if(
+			!ext->glBufferStorage ||
+			!ext->glMapBufferRange ||
+			!ext->glTextureStorage2D ||
+			!ext->glFenceSync ||
+			!ext->glClientWaitSync
+		) {
+			std::cerr << "Required GL4 buffer-storage/texture-storage/sync extensions are unavailable." << std::endl;
 
-		if(!ss) return NULL;
+			return false;
+		}
 
-		osg::StateAttribute* sa = ss->getTextureAttribute(0, osg::StateAttribute::TEXTURE);
+		mbew::num_t frameSize = _m->frame_size(mbew::Iterate::RGB);
 
-		if(!sa) return NULL;
+		// glGenTextures() only reserves a name; one bind is required to fix its target before
+		// glTextureStorage2D() (DSA) will accept it, since this OSG build has no glCreateTextures.
+		glGenTextures(1, &_texture);
+		glBindTexture(GL_TEXTURE_RECTANGLE, _texture);
+		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-		osg::Texture* tex = sa->asTexture();
+		ext->glTextureStorage2D(_texture, 1, GL_RGBA8, _width, _height);
 
-		if(!tex) return NULL;
+		for(int i = 0; i < RING_CAPACITY; i++) {
+			glGenBuffers(1, &_pbo[i]);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pbo[i]);
 
-		osg::Image* image = dynamic_cast<osg::Image*>(tex->getImage(0));
+			ext->glBufferStorage(
+				GL_PIXEL_UNPACK_BUFFER,
+				frameSize,
+				NULL,
+				GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
+			);
 
-		if(!image) return NULL;
+			_pboPtr[i] = ext->glMapBufferRange(
+				GL_PIXEL_UNPACK_BUFFER,
+				0,
+				frameSize,
+				GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT
+			);
+		}
 
-		return image;
+		_initialized = true;
+
+		return true;
+	}
+
+	void _upload(osg::GLExtensions* ext) const {
+		mbew::num_t frameSize = _m->frame_size(mbew::Iterate::RGB);
+
+		// Guard against overwriting a slot the GPU might still be reading from 3 frames ago.
+		if(_fence[_ring]) ext->glClientWaitSync(_fence[_ring], 0, GL_TIMEOUT_IGNORED);
+
+		memcpy(_pboPtr[_ring], _m->iter.rgb(), frameSize);
+
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pbo[_ring]);
+		glBindTexture(GL_TEXTURE_RECTANGLE, _texture);
+
+		// Offset-as-pointer: reads from the bound GL_PIXEL_UNPACK_BUFFER instead of client memory.
+		glTexSubImage2D(
+			GL_TEXTURE_RECTANGLE,
+			0,
+			0,
+			0,
+			_width,
+			_height,
+			GL_BGRA,
+			GL_UNSIGNED_BYTE,
+			0
+		);
+
+		// GL_PIXEL_UNPACK_BUFFER is a single global binding, not scoped to this texture/unit--
+		// OSG's own PixelDataBufferObject (src/osg/BufferObject.cpp) always rebinds it to 0 right
+		// after use for exactly this reason. Leaving our PBO bound here corrupted every other
+		// glTexSubImage2D-style upload for the rest of the frame (e.g. StatsHandler's font atlas
+		// glyph upload silently read garbage from our mapped PBO instead of the real bitmap).
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+		// Not paired with glDeleteSync(): OSG's GLExtensions doesn't expose it, and glDeleteSync
+		// isn't guaranteed to be directly linkable outside that dispatch table. Each slot leaks
+		// one GLsync per RING_CAPACITY frames--bounded and reclaimed at process exit, acceptable
+		// for this example.
+		_fence[_ring] = ext->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		_ring = (_ring + 1) % RING_CAPACITY;
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_RECTANGLE, _texture);
 	}
 
 private:
@@ -110,7 +179,13 @@ private:
 	mbew::num_t _width;
 	mbew::num_t _height;
 
-	osg::ElapsedTime _time;
+	mutable osg::ElapsedTime _time;
+	mutable bool _initialized = false;
+	mutable GLuint _texture = 0;
+	mutable GLuint _pbo[RING_CAPACITY] = {};
+	mutable void* _pboPtr[RING_CAPACITY] = {};
+	mutable GLsync _fence[RING_CAPACITY] = {};
+	mutable int _ring = 0;
 };
 
 int main(int argc, char** argv) {
@@ -138,9 +213,7 @@ int main(int argc, char** argv) {
 	mbew::num_t width = m->property(mbew::Property::VIDEO_WIDTH).num;
 	mbew::num_t height = m->property(mbew::Property::VIDEO_HEIGHT).num;
 
-	osg::Image* image = new osg::Image();
 	osg::Geode* geode = new osg::Geode();
-	osg::TextureRectangle* texture = new osg::TextureRectangle();
 	// TextureRectangle coords are unnormalized pixels, (0,0) at bottom-left. mbew's RGB
 	// buffer is row-major top-down, so the vertical (b/t) swap below compensates for that
 	// mismatch with GL's bottom-up texture convention. There's no equivalent need to swap
@@ -155,22 +228,18 @@ int main(int argc, char** argv) {
 		0.0f
 	);
 
-	texture->setImage(image);
-	texture->setDataVariance(osg::Object::DYNAMIC);
-
 	osg::Program* program = new osg::Program();
 	program->addShader(new osg::Shader(osg::Shader::VERTEX, VERT_SRC));
 	program->addShader(new osg::Shader(osg::Shader::FRAGMENT, FRAG_SRC));
 
 	osg::StateSet* state = geom->getOrCreateStateSet();
 
-	state->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
 	state->setAttributeAndModes(program);
 	state->addUniform(new osg::Uniform("tex", 0));
 	state->setMode(GL_BLEND, osg::StateAttribute::ON);
 	state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
-	geom->setUpdateCallback(new MBEWUpdateCallback(m, width, height));
+	geom->setDrawCallback(new MBEWDrawCallback(m, width, height));
 
 	geode->addDrawable(geom);
 
