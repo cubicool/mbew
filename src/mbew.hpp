@@ -111,6 +111,10 @@ public:
 		return mbew_property(_m, prop);
 	}
 
+	num_t frame_size(num_t flags = 0) const {
+		return mbew_video_frame_size(_m, flags);
+	}
+
 	bool iterate(num_t flags = 0) {
 		return mbew_iterate(_m, flags);
 	}
