@@ -190,8 +190,9 @@ The MBEW build system will statically integrate all of these projects.
   `mbew_iter_t` instance (another private implementation) per iteration.
 - Implement a modern GL4 playback pipeline: persistent-mapped PBO ring buffer,
   threaded decode, and YUV-plane upload with shader-side color conversion.
-- Rewrite `mbew-example-video-sdl` for SDL2 (the original used SDL1-only APIs
-  that were removed: `SDL_SetVideoMode`, `SDL_CreateYUVOverlay`, etc.).
+- ~~Rewrite `mbew-example-video-sdl` for SDL2 (the original used SDL1-only APIs
+  that were removed: `SDL_SetVideoMode`, `SDL_CreateYUVOverlay`, etc.).~~
+  *(rewritten for SDL3 instead)*
 - Choose tags for each submodule and use them (as opposed to simply using
   whatever was in the pull at the time).
 - Implement what `play -t raw -r 48k -e signed -b 16 -c 1 audio.pcm` does.

@@ -51,7 +51,7 @@ target-based CMake (3.10+ minimum). Key things to know:
 | `mbew-example-video-osg` | ✅ | Live playback in an OSG window |
 | `mbew-example-audio-sdl` | ✅ | Audio via SDL2 (include updated from SDL1) |
 | `mbew-example-audio-ao` | ⚠️ | Skipped — libao not installed |
-| `mbew-example-video-sdl` | ❌ | Uses SDL1-only APIs (SDL_SetVideoMode, SDL_CreateYUVOverlay); needs rewrite for SDL2 |
+| `mbew-example-video-sdl` | ✅ | Rewritten for SDL3 (was SDL1-only: SDL_SetVideoMode, SDL_CreateYUVOverlay). Uploads mbew's YUV planes directly via SDL_UpdateYUVTexture against SDL_PIXELFORMAT_IYUV — no plane swap needed since mbew's [Y,U,V] order matches IYUV exactly |
 
 ## OSG example specifics
 
@@ -65,6 +65,14 @@ build has disabled. A GLSL 3.30 shader pair was added:
 OSG automatically updates `osg_ModelViewProjectionMatrix` and binds
 `osg_Vertex` (location 0) and `osg_MultiTexCoord0` (location 8) when FFP
 is off. The `tex` uniform is explicitly set to texture unit 0.
+
+`createTexturedQuadGeometry`'s `(l, b, r, t)` texture coords are unnormalized
+pixels for `TextureRectangle`, `(0,0)` at bottom-left. The `b`/`t` swap (top of
+quad ↔ texture row 0) is required because mbew's RGB buffer is row-major
+top-down while GL's texture convention is bottom-up — that part is correct.
+There is no equivalent need to swap `l`/`r`: column order already agrees
+between the buffer and the `s` coordinate. A prior version of this example
+swapped `l`/`r` too, which mirrored the video horizontally.
 
 The current playback approach is unoptimized (see Next Session below).
 
