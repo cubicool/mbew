@@ -249,6 +249,13 @@ MBEW_API mbew_status_t mbew_status(mbew_t m);
  * encapsulated within a #mbew_propval_t union. */
 MBEW_API mbew_propval_t mbew_property(mbew_t m, ...);
 
+/* Returns the number of bytes a single decoded video frame requires once tightly packed into
+ * a caller-owned buffer--useful for preallocating frame buffers ahead of iteration. Pass
+ * MBEW_ITERATE_RGB to size for mbew_iter_rgb()'s 4-byte-per-pixel buffer; pass 0 (the default,
+ * YUV420) to size for a packed mbew_iter_yuv_planes() copy. Returns 0 if no video track was
+ * found. This does NOT need to be called during an active iteration. */
+MBEW_API mbew_num_t mbew_video_frame_size(mbew_t m, mbew_num_t flags);
+
 /* The mbew_iterate() routine is the primary workhorse function within libmbew, whose main purpose
  * is to loop through all of the available stream data and expose it to the caller, frame-by-frame,
  * using the mbew_iter() API described below.

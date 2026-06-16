@@ -24,13 +24,16 @@ if(NOT WIN32)
         message(STATUS "SDL2 not found; skipping mbew-example-audio-sdl")
     endif()
 
-    # SDL3 (video example)
+    # SDL3 (video examples)
     find_package(SDL3 QUIET)
     if(SDL3_FOUND)
         add_executable(mbew-example-video-sdl mbew-example-video-sdl.c)
         target_link_libraries(mbew-example-video-sdl PRIVATE mbew SDL3::SDL3 pthread m)
+
+        add_executable(mbew-example-video-sdl-threaded mbew-example-video-sdl-threaded.c)
+        target_link_libraries(mbew-example-video-sdl-threaded PRIVATE mbew SDL3::SDL3 pthread m)
     else()
-        message(STATUS "SDL3 not found; skipping mbew-example-video-sdl")
+        message(STATUS "SDL3 not found; skipping mbew-example-video-sdl and mbew-example-video-sdl-threaded")
     endif()
 
     # OpenSceneGraph
