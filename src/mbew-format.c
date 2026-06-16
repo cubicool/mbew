@@ -1,5 +1,24 @@
 #include "mbew-private.h"
 
+mbew_num_t mbew_video_frame_size(mbew_t m, mbew_num_t flags) {
+	mbew_num_t width = m->video.params.width;
+	mbew_num_t height = m->video.params.height;
+
+	mbew_num_t luma;
+	mbew_num_t chroma;
+
+	if(!m->video.track.init) return 0;
+
+	if(mbew_flags(flags, MBEW_ITERATE_RGB)) return width * height * 4;
+
+	/* YUV420: one full-resolution Y plane, plus two quarter-resolution U/V planes. Round the
+	 * chroma dimensions up to handle odd width/height, matching libvpx's own I420 layout. */
+	luma = width * height;
+	chroma = ((width + 1) / 2) * ((height + 1) / 2);
+
+	return luma + (2 * chroma);
+}
+
 /* http://stackoverflow.com/questions/29327705/libvpx-convert-vpx-img-fmt-i420-rgb */
 void mbew_format_rgb(vpx_image_t* img, uint8_t* dest) {
 	mbew_num_t width = img->d_w;
