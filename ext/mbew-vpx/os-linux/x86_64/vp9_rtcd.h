@@ -1,3 +1,14 @@
+/*
+ *  Copyright (c) 2017 The WebM project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
+// This file is generated. Do not edit.
 #ifndef VP9_RTCD_H_
 #define VP9_RTCD_H_
 
@@ -14,12 +25,18 @@
 #include "vpx/vpx_integer.h"
 #include "vp9/common/vp9_common.h"
 #include "vp9/common/vp9_enums.h"
+#include "vp9/common/vp9_filter.h"
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+#include "vp9/encoder/vp9_temporal_filter.h"
+#endif
 
 struct macroblockd;
 
 /* Encoder forward decls */
 struct macroblock;
-struct vp9_variance_vtable;
+struct macroblock_plane;
+struct vp9_sad_table;
+struct ScanOrder;
 struct search_site_config;
 struct mv;
 union int_mv;
@@ -29,8 +46,8 @@ struct yv12_buffer_config;
 extern "C" {
 #endif
 
-void vp9_iht16x16_256_add_c(const tran_low_t *input, uint8_t *output, int pitch, int tx_type);
-void vp9_iht16x16_256_add_sse2(const tran_low_t *input, uint8_t *output, int pitch, int tx_type);
+void vp9_iht16x16_256_add_c(const tran_low_t *input, uint8_t *dest, int stride, int tx_type);
+void vp9_iht16x16_256_add_sse2(const tran_low_t *input, uint8_t *dest, int stride, int tx_type);
 #define vp9_iht16x16_256_add vp9_iht16x16_256_add_sse2
 
 void vp9_iht4x4_16_add_c(const tran_low_t *input, uint8_t *dest, int stride, int tx_type);
@@ -58,4 +75,4 @@ static void setup_rtcd_internal(void)
 }  // extern "C"
 #endif
 
-#endif
+#endif  // VP9_RTCD_H_

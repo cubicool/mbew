@@ -18,23 +18,30 @@ set(MBEW_VPX_SRC_FILES
     "libvpx/vpx_dsp/add_noise.c"
     "libvpx/vpx_dsp/deblock.c"
     "libvpx/vpx_dsp/vpx_convolve.c"
-    "libvpx/vpx_dsp/x86/vpx_asm_stubs.c"
     "libvpx/vpx_dsp/x86/vpx_subpixel_8t_intrin_avx2.c"
     "libvpx/vpx_dsp/x86/vpx_subpixel_8t_intrin_ssse3.c"
+    "libvpx/vpx_dsp/x86/vpx_subpixel_4t_intrin_sse2.c"
+    "libvpx/vpx_dsp/x86/avg_pred_sse2.c"
+    "libvpx/vpx_dsp/x86/avg_pred_avx2.c"
+    "libvpx/vpx_dsp/x86/sad_avx2.c"
     "libvpx/vpx_dsp/loopfilter.c"
     "libvpx/vpx_dsp/x86/loopfilter_sse2.c"
     "libvpx/vpx_dsp/x86/loopfilter_avx2.c"
+    "libvpx/vpx_dsp/x86/deblock_sse2.c"
     "libvpx/vpx_dsp/inv_txfm.c"
     "libvpx/vpx_dsp/x86/inv_txfm_sse2.c"
+    "libvpx/vpx_dsp/x86/inv_txfm_ssse3.c"
     "libvpx/vpx_dsp/variance.c"
     "libvpx/vpx_dsp/x86/variance_sse2.c"
     "libvpx/vpx_dsp/x86/variance_avx2.c"
-    "libvpx/vpx_dsp/x86/variance_impl_avx2.c"
+    "libvpx/vpx_dsp/x86/inv_txfm_avx2.c"
+    "libvpx/vpx_dsp/x86/highbd_intrapred_intrin_avx512.c"
+    "libvpx/vpx_dsp/x86/sad4d_avx512.c"
+    "libvpx/vpx_dsp/x86/sad_avx512.c"
     "libvpx/vpx_dsp/vpx_dsp_rtcd.c"
     "libvpx/vpx_util/vpx_thread.c"
     "libvpx/vp8/common/alloccommon.c"
     "libvpx/vp8/common/blockd.c"
-    "libvpx/vp8/common/copy_c.c"
     "libvpx/vp8/common/dequantize.c"
     "libvpx/vp8/common/entropy.c"
     "libvpx/vp8/common/entropymode.c"
@@ -57,7 +64,7 @@ set(MBEW_VPX_SRC_FILES
     "libvpx/vp8/common/setupintrarecon.c"
     "libvpx/vp8/common/swapyv12buffer.c"
     "libvpx/vp8/common/treecoder.c"
-    "libvpx/vp8/common/x86/filter_x86.c"
+    "libvpx/vp8/common/x86/bilinear_filter_sse2.c"
     "libvpx/vp8/common/x86/vp8_asm_stubs.c"
     "libvpx/vp8/common/x86/loopfilter_x86.c"
     "libvpx/vp8/common/mfqe.c"
@@ -71,6 +78,7 @@ set(MBEW_VPX_SRC_FILES
     "libvpx/vp8/decoder/detokenize.c"
     "libvpx/vp8/decoder/onyxd_if.c"
     "libvpx/vp8/decoder/threading.c"
+    "libvpx/vp9/vp9_iface_common.c"
     "libvpx/vp9/common/vp9_alloccommon.c"
     "libvpx/vp9/common/vp9_blockd.c"
     "libvpx/vp9/common/vp9_entropy.c"
@@ -98,34 +106,33 @@ set(MBEW_VPX_SRC_FILES
     "libvpx/vp9/decoder/vp9_decoder.c"
     "libvpx/vp9/decoder/vp9_detokenize.c"
     "libvpx/vp9/decoder/vp9_dsubexp.c"
-    "libvpx/vp9/decoder/vp9_dthread.c"
+    "libvpx/vp9/decoder/vp9_job_queue.c"
     "libvpx/vp9/vp9_dx_iface.c"
 )
 
 set(MBEW_VPX_ASM_FILES
-    "libvpx/vpx_ports/emms.asm"
+    "libvpx/vpx_ports/emms_mmx.asm"
+    "libvpx/vpx_dsp/x86/vpx_high_subpixel_8t_sse2.asm"
     "libvpx/vpx_dsp/x86/intrapred_sse2.asm"
     "libvpx/vpx_dsp/x86/intrapred_ssse3.asm"
     "libvpx/vpx_dsp/x86/vpx_subpixel_8t_ssse3.asm"
     "libvpx/vpx_dsp/x86/add_noise_sse2.asm"
-    "libvpx/vpx_dsp/x86/deblock_sse2.asm"
     "libvpx/vpx_dsp/x86/vpx_subpixel_8t_sse2.asm"
     "libvpx/vpx_dsp/x86/vpx_subpixel_bilinear_sse2.asm"
     "libvpx/vpx_dsp/x86/vpx_subpixel_bilinear_ssse3.asm"
     "libvpx/vpx_dsp/x86/vpx_convolve_copy_sse2.asm"
     "libvpx/vpx_dsp/x86/inv_wht_sse2.asm"
     "libvpx/vpx_dsp/x86/subpel_variance_sse2.asm"
+    "libvpx/vpx_dsp/x86/sad_sse2.asm"
     "libvpx/vp8/common/x86/dequantize_mmx.asm"
     "libvpx/vp8/common/x86/idctllm_mmx.asm"
     "libvpx/vp8/common/x86/recon_mmx.asm"
     "libvpx/vp8/common/x86/subpixel_mmx.asm"
-    "libvpx/vp8/common/x86/copy_sse2.asm"
     "libvpx/vp8/common/x86/idctllm_sse2.asm"
     "libvpx/vp8/common/x86/recon_sse2.asm"
     "libvpx/vp8/common/x86/subpixel_sse2.asm"
     "libvpx/vp8/common/x86/loopfilter_sse2.asm"
     "libvpx/vp8/common/x86/iwalsh_sse2.asm"
-    "libvpx/vp8/common/x86/copy_sse3.asm"
     "libvpx/vp8/common/x86/subpixel_ssse3.asm"
     "libvpx/vp8/common/x86/mfqe_sse2.asm"
 )
@@ -138,7 +145,6 @@ if(MBEW32)
 else()
     list(APPEND MBEW_VPX_ASM_FILES
         "libvpx/vpx_ports/x86_abi_support.asm"
-        "libvpx/vpx_dsp/x86/inv_txfm_ssse3_x86_64.asm"
         "libvpx/vpx_dsp/x86/ssim_opt_x86_64.asm"
         "libvpx/vp8/common/x86/loopfilter_block_sse2_x86_64.asm"
     )
@@ -173,6 +179,17 @@ if(NOT WIN32)
         $<$<COMPILE_LANGUAGE:C>:-msse4.1>
     )
     target_link_libraries(mbew-vpx PUBLIC m)
+
+    # rtcd.pl's specialize() adds every architecture tag unconditionally, with no config gate, so
+    # the generated header declares/wires the AVX512 variants regardless of configure's
+    # --disable-avx512; these 3 files are compiled unconditionally too, with their own scoped
+    # flags since AVX-512 needs explicit ISA extensions beyond the -m* list above.
+    set_source_files_properties(
+        "libvpx/vpx_dsp/x86/highbd_intrapred_intrin_avx512.c"
+        "libvpx/vpx_dsp/x86/sad4d_avx512.c"
+        "libvpx/vpx_dsp/x86/sad_avx512.c"
+        PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512bw;-mavx512dq;-mavx512vl"
+    )
 
 # There is a known issue with assembly files and Visual Studio that CMake has not yet resolved
 # (assembly support only works for Makefile-based setups). A minimal custom command is used instead.
