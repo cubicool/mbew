@@ -4,15 +4,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-static int mbew_file_read(void* dest, size_t length, void* userdata) {
-	size_t r;
+static int64_t mbew_file_read(void* dest, size_t length, void* userdata) {
 	FILE* fp = (FILE*)(userdata);
+	size_t r = fread(dest, 1, length, fp);
 
-	r = fread(dest, length, 1, fp);
+	if(r == 0 && ferror(fp)) return -1;
 
-	if(!r && feof(fp)) return 0;
-
-	return r == 0 ? -1 : 1;
+	return (int64_t)(r);
 }
 
 static int mbew_file_seek(int64_t offset, int whence, void* userdata) {
@@ -55,16 +53,18 @@ typedef struct _mbew_memory_t {
 	int64_t pos;
 } mbew_memory_t;
 
-static int mbew_memory_read(void* dest, size_t length, void* userdata) {
+static int64_t mbew_memory_read(void* dest, size_t length, void* userdata) {
 	mbew_memory_t* mem = (mbew_memory_t*)(userdata);
+	int64_t remaining = mem->size - mem->pos;
+	int64_t n = (int64_t)(length) < remaining ? (int64_t)(length) : remaining;
 
-	memcpy(dest, mem->data + mem->pos, length);
+	if(n <= 0) return 0;
 
-	mem->pos += length;
+	memcpy(dest, mem->data + mem->pos, (size_t)(n));
 
-	if(mem->pos == mem->size) return 0;
+	mem->pos += n;
 
-	return 1;
+	return n;
 }
 
 static int mbew_memory_seek(int64_t offset, int whence, void* userdata) {
