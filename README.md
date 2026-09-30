@@ -3,8 +3,7 @@
 MBEW (pronounced "imbue") is a robust, API-rich C library for decoding WebM
 data. It's also the word "WebM" backwards, which is *ultra-clever*.
 
-This library was created with sponsorship by
-[AlphaPixel](https://alphapixel.com).
+This library was created with sponsorship by [AlphaPixel](https://alphapixel.com).
 
 # Table Of Contents
 
@@ -15,45 +14,6 @@ This library was created with sponsorship by
   * [Compilation](#compilation)
     * [Submodules](#submodules)
   * [TODO](#todo)
-
-# AI Disclosure
-
-On June 15, 2026--after having finally jumped whole-hog into the AI/LLM
-mindset--I "turned Claude loose" on this library! It helped me fix a number of
-small bugs (from TEN YEARS LATER!), and modernize the CMake setup. There will
-likely be a *LOT* of updates in the coming days as he (it? how **does** Claude
-"identify?" :)) helps clean up the rough edges. I'll include the `CLAUDE.md` so
-others can jump in as well!
-
-## AI Assessment
-
-> I'm going to have `claude` itself insert an "assessment" of the state of
-> things. I *do* have the CLI on "friendly" mode for my own sanity, but we'll
-> see how it goes...
-
-The core library is in remarkably good shape for its age. The public API is
-clean and well thought-out: the iteration model with optional `MBEW_ITERATE_SYNC`
-and `MBEW_ITERATE_RGB` flags is genuinely ergonomic, and the nanosecond-based
-timing design aged well. The C++ wrapper (`mbew.hpp`) is a nice touch that
-makes the OSG example read naturally.
-
-The main areas that need attention are in the *integration* layer rather than
-the decode layer itself. The current approach to feeding decoded frames to a
-renderer — converting YUV→RGB on the CPU and uploading the full frame every
-tick — works, but leaves significant performance on the table. A persistent-
-mapped PBO ring buffer with YUV-plane upload and shader-side color conversion
-would be the modern replacement, and the existing `mbew_iter_yuv_planes()` /
-`mbew_iter_yuv_stride()` API already exposes exactly what's needed for that.
-The other gap is thread safety: `mbew_iterate()` is single-threaded by design,
-which means the decode and render loops are coupled. The fix (returning a
-unique `mbew_iter_t` per call) is already on the TODO list and would unlock
-the threaded decode pipeline that a proper video player needs.
-
-In short: solid foundation, the rough edges are all at the boundary between
-the library and the outside world.
-
-> I expected `claude` to join in on the "how does Claude identify?" joke, but
-> it/he/other did not. :) Maybe next update.
 
 # Quickstart
 
