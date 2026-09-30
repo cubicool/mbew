@@ -7,7 +7,6 @@ This library was created with sponsorship by [AlphaPixel](https://alphapixel.com
 
 # Table Of Contents
 
-  * [AI Disclosure](#ai-disclosure)
   * [Quickstart](#quickstart)
     * [Naive Synchronization](#naive-sychronization)
     * [Less Naive Synchronization](#less-naive-synchronization)
