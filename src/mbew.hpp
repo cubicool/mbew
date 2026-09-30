@@ -3,6 +3,7 @@
 
 #include "mbew.h"
 
+#include <cstddef>
 #include <string>
 #include <memory>
 
@@ -74,11 +75,15 @@ enum class Codec {
 	OPUS = MBEW_CODEC_OPUS
 };
 
-namespace Iterate { enum {
-	VIDEO = MBEW_ITERATE_VIDEO,
-	AUDIO = MBEW_ITERATE_AUDIO,
-	SYNC = MBEW_ITERATE_SYNC,
-	RGB = MBEW_ITERATE_RGB
+// Explicit num_t (mbew_num_t, unsigned) underlying type: MBEW_ENUM's tag scheme packs a marker
+// into the top byte, which sets the sign bit on a plain (int-backed) enum and forces every caller
+// ORing these together to static_cast the result before passing it to mbew_iterate()'s num_t
+// parameter. Fixed here instead of at every call site.
+namespace Iterate { enum: num_t {
+	VIDEO = static_cast<num_t>(MBEW_ITERATE_VIDEO),
+	AUDIO = static_cast<num_t>(MBEW_ITERATE_AUDIO),
+	SYNC = static_cast<num_t>(MBEW_ITERATE_SYNC),
+	RGB = static_cast<num_t>(MBEW_ITERATE_RGB)
 }; }
 
 namespace impl { class context_t; }
@@ -86,12 +91,18 @@ namespace impl { class context_t; }
 typedef std::shared_ptr<impl::context_t> Context;
 
 Context create(const std::string& path);
+Context create(const void* data, std::size_t size);
 
 namespace impl {
 
 class context_t {
 public:
 	~context_t() {
+		// mbew_destroy() requires the context to have finished iterating or been reset first (see
+		// mbew_destroy()'s doc comment in mbew.h) - guard it here instead of relying on every
+		// caller to remember.
+		if(mbew_iter_active(_m)) mbew_reset(_m);
+
 		mbew_destroy(_m);
 	}
 
@@ -111,11 +122,11 @@ public:
 		return mbew_property(_m, prop);
 	}
 
-	num_t frame_size(num_t flags = 0) const {
+	num_t frame_size(num_t flags=0) const {
 		return mbew_video_frame_size(_m, flags);
 	}
 
-	bool iterate(num_t flags = 0) {
+	bool iterate(num_t flags=0) {
 		return mbew_iterate(_m, flags);
 	}
 
@@ -168,10 +179,16 @@ public:
 
 protected:
 	friend Context mbew::create(const std::string& path);
+	friend Context mbew::create(const void* data, std::size_t size);
 
 	context_t(const std::string& path):
 	iter(&_m) {
 		_m = mbew_create(MBEW_SOURCE_FILE, path.c_str());
+	}
+
+	context_t(const void* data, std::size_t size):
+	iter(&_m) {
+		_m = mbew_create(MBEW_SOURCE_MEMORY, data, size);
 	}
 
 	mbew_t _m;
@@ -186,6 +203,10 @@ std::string string(Enum e) {
 
 Context create(const std::string& path) {
 	return Context(new impl::context_t(path));
+}
+
+Context create(const void* data, std::size_t size) {
+	return Context(new impl::context_t(data, size));
 }
 
 }
