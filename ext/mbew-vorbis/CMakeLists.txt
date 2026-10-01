@@ -19,4 +19,8 @@ add_library(mbew-vorbis STATIC ${MBEW_VORBIS_FILES})
 
 target_include_directories(mbew-vorbis PUBLIC "${PROJECT_SOURCE_DIR}/vorbis/include")
 
-target_link_libraries(mbew-vorbis PUBLIC mbew-ogg m)
+target_link_libraries(mbew-vorbis PUBLIC mbew-ogg)
+
+if(NOT WIN32)
+    target_link_libraries(mbew-vorbis PUBLIC m)
+endif()
