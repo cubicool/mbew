@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 void mbew_iter_reset(mbew_t m) {
 	if(m->iter.packet) nestegg_free_packet(m->iter.packet);
@@ -11,6 +12,12 @@ void mbew_iter_reset(mbew_t m) {
 
 mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	int e;
+
+	if(!m || m->src == MBEW_SOURCE_WRITE_FILE) {
+		if(m) m->status = MBEW_STATUS_NOT_IMPLEMENTED;
+
+		return MBEW_FALSE;
+	}
 
 	/* In MBEW_ITERATE_SYNC mode, the user is expected to feed elapsed time data into the iteration
 	 * state before any data is yielded. This check simply short-circuits the iteration if the
@@ -41,7 +48,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 	while((e = nestegg_read_packet(m->ne, &m->iter.packet)) > 0) {
 		mbew_num_t track = 0;
 		mbew_num_t count = 0;
-		mbew_num_t type = 0;
+		int type = 0;
 		mbew_ns_t duration = 0;
 		mbew_bytes_t data = NULL;
 
@@ -72,10 +79,11 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 
 			/* Get a data pointer to the corresponding "data chunk." */
 			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) mbew_fail(NESTEGG_PACKET_DATA);
+			if(size > UINT_MAX) mbew_fail(NESTEGG_PACKET_DATA);
 
-			vpx_codec_peek_stream_info(m->video.iface, data, size, &info);
+			vpx_codec_peek_stream_info(m->video.iface, data, (unsigned int)size, &info);
 
-			if(vpx_codec_decode(&m->video.codec, data, size, NULL, 0)) mbew_fail(VPX_CODEC_DECODE);
+			if(vpx_codec_decode(&m->video.codec, data, (unsigned int)size, NULL, 0)) mbew_fail(VPX_CODEC_DECODE);
 
 			/* Assume there is only one frame.
 			 * TODO: Handle the case where there are multiples frames-in-frame. */
@@ -101,18 +109,19 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 		else if(type == NESTEGG_TRACK_AUDIO && !mbew_flags(flags, MBEW_ITERATE_VIDEO)) {
 			ogg_packet op;
 
-			int count;
+			int samples_count;
 			int index = 0;
 			int max = 4096 / m->audio.vorbis.info.channels;
 
 			float** pcm;
 
 			if(nestegg_packet_data(m->iter.packet, 0, &data, &size)) mbew_fail(NESTEGG_PACKET_DATA);
+			if(size > LONG_MAX) mbew_fail(NESTEGG_PACKET_DATA);
 
 			memset(&op, 0, sizeof(ogg_packet));
 
 			op.packet = data;
-			op.bytes = size;
+			op.bytes = (long)size;
 
 			if(vorbis_synthesis(&m->audio.vorbis.block, &op)) mbew_fail(NOT_IMPLEMENTED);
 
@@ -121,8 +130,8 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 				&m->audio.vorbis.block
 			)) mbew_fail(NOT_IMPLEMENTED);
 
-			while((count = vorbis_synthesis_pcmout(&m->audio.vorbis.dsp, &pcm))) {
-				int conv = count <= max ? count : max;
+			while((samples_count = vorbis_synthesis_pcmout(&m->audio.vorbis.dsp, &pcm))) {
+				int conv = samples_count <= max ? samples_count : max;
 				int c;
 
 				for(c = 0; c < m->audio.vorbis.info.channels; c++) {
@@ -132,13 +141,13 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 					float* samples = pcm[c];
 
 					for(i = 0, j = c; i < conv; i++, j += m->audio.vorbis.info.channels) {
-						int sample = samples[i] * 32767.0f;
+						float sample = samples[i] * 32767.0f;
 
-						if(sample > 32767) sample = 32767;
+						if(sample > 32767.0f) sample = 32767.0f;
 
-						else if(sample < -32767) sample = -32767;
+						else if(sample < -32767.0f) sample = -32767.0f;
 
-						m->audio.data.pcm16[index + j] = (int16_t)(sample);
+						m->audio.data.pcm16[index + j] = (int16_t)sample;
 					}
 				}
 
@@ -147,7 +156,7 @@ mbew_bool_t mbew_iterate(mbew_t m, mbew_num_t flags) {
 				index += conv;
 			}
 
-			m->audio.data.size = index;
+			m->audio.data.size = (size_t)index;
 			m->iter.type = MBEW_DATA_AUDIO;
 
 			break;
@@ -229,6 +238,5 @@ const int16_t* mbew_iter_pcm16(mbew_t m) {
 }
 
 mbew_num_t mbew_iter_pcm16_size(mbew_t m) {
-	return m->audio.data.size;
+	return (mbew_num_t)m->audio.data.size;
 }
-

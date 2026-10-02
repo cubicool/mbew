@@ -94,11 +94,20 @@ static nestegg_io MBEW_IO_MEMORY = {
 
 static mbew_bool_t mbew_src_memory_create(mbew_t m, va_list args) {
 	mbew_memory_t* mem = (mbew_memory_t*)(calloc(1, sizeof(mbew_memory_t)));
+	size_t size;
 
 	if(!mem) return MBEW_FALSE;
 
 	mem->data = va_arg(args, void*);
-	mem->size = va_arg(args, size_t);
+	size = va_arg(args, size_t);
+
+	if(size > INT64_MAX) {
+		free(mem);
+
+		return MBEW_FALSE;
+	}
+
+	mem->size = (int64_t)size;
 	mem->pos = 0;
 
 	if(!mem->data || mem->size <= 0) return MBEW_FALSE;
@@ -135,4 +144,3 @@ void mbew_src_destroy(mbew_t m) {
 
 	else if(m->src == MBEW_SOURCE_MEMORY) mbew_src_memory_destroy(m);
 }
-

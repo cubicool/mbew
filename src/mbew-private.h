@@ -3,6 +3,7 @@
 
 #include "mbew.h"
 #include "vpx/vpx_decoder.h"
+#include "vpx/vpx_encoder.h"
 #include "nestegg/nestegg.h"
 #include "vorbis/codec.h"
 
@@ -72,6 +73,20 @@ typedef struct _mbew_iter_t {
 	mbew_ns_t elapsed;
 } mbew_iter_t;
 
+typedef struct _mbew_writer_t {
+	FILE* file;
+	vpx_codec_ctx_t codec;
+	vpx_image_t image;
+	mbew_write_config_t config;
+	mbew_num_t frames;
+	uint64_t cluster_timestamp;
+	long duration_offset;
+	mbew_bool_t codec_init;
+	mbew_bool_t image_init;
+	mbew_bool_t init;
+	mbew_bool_t finished;
+} mbew_writer_t;
+
 struct _mbew_t {
 	nestegg* ne;
 	nestegg_io ne_io;
@@ -92,6 +107,7 @@ struct _mbew_t {
 
 	mbew_audio_t audio;
 	mbew_video_t video;
+	mbew_writer_t writer;
 
 	/* Used heavily during mbew_iterate(). */
 	mbew_iter_t iter;
@@ -104,10 +120,18 @@ void mbew_format_rgb(vpx_image_t* img, uint8_t* dest);
 
 void mbew_iter_reset(mbew_t m);
 
+mbew_bool_t mbew_writer_create(mbew_t m, const char* path, const mbew_write_config_t* config);
+void mbew_writer_destroy(mbew_t m);
+mbew_propval_t mbew_writer_property(mbew_t m, mbew_property_t prop);
+
+mbew_bool_t mbew_reader_create(mbew_source_t src, mbew_t m, va_list args);
+void mbew_reader_destroy(mbew_t m);
+mbew_bool_t mbew_reader_reset(mbew_t m);
+mbew_propval_t mbew_reader_property(mbew_t m, mbew_property_t prop);
+
 #define mbew_flags(lhs, rhs) \
 	((mbew_enum_value((lhs)) & mbew_enum_value((rhs))) == mbew_enum_value((rhs)))
 
 #define mbew_fail(st) { m->status = MBEW_STATUS_##st; goto fail; }
 
 #endif
-

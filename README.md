@@ -114,10 +114,9 @@ MBEW compilation is facilitated through CMake (3.10+). Custom CMakeLists.txt
 files for each submodule use modern target-based CMake, so all include paths
 and link dependencies propagate transitively — no manual configuration needed.
 
-On Linux you will also need **yasm** installed (`sudo apt install yasm`). The
-libvpx assembly code is not compatible with NASM 2.15+ due to stricter opcode
-checking in newer versions; yasm handles the old `x86inc.asm` macro style
-without issues.
+MBEW configures and builds its bundled libvpx internally, so a POSIX build
+also needs `make` available. No system codec or container libraries are
+required.
 
 ```bash
 mkdir BUILD && cd BUILD

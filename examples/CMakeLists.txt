@@ -13,6 +13,7 @@ add_mbew_example(iterate c)
 add_mbew_example(properties c)
 add_mbew_example(src-memory c)
 add_mbew_example(strings c)
+add_mbew_example(write-noise c)
 
 if(NOT WIN32)
     # SDL2 (audio example)
