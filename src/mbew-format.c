@@ -1,13 +1,24 @@
 #include "mbew-private.h"
 
 mbew_num_t mbew_video_frame_size(mbew_t m, mbew_num_t flags) {
-	mbew_num_t width = m->video.params.width;
-	mbew_num_t height = m->video.params.height;
+	mbew_num_t width;
+	mbew_num_t height;
 
 	mbew_num_t luma;
 	mbew_num_t chroma;
 
-	if(!m->video.track.init) return 0;
+	if(!m) return 0;
+
+	if(m->src == MBEW_SOURCE_WRITE_FILE) {
+		width = m->writer.config.width;
+		height = m->writer.config.height;
+	}
+
+	else {
+		if(!m->video.track.init) return 0;
+		width = m->video.params.width;
+		height = m->video.params.height;
+	}
 
 	if(mbew_flags(flags, MBEW_ITERATE_RGB)) return width * height * 4;
 
@@ -26,12 +37,12 @@ void mbew_format_rgb(vpx_image_t* img, uint8_t* dest) {
 	const uint8_t* y = img->planes[VPX_PLANE_Y];
 	const uint8_t* u = img->planes[VPX_PLANE_U];
 	const uint8_t* v = img->planes[VPX_PLANE_V];
-	mbew_num_t ystride = img->stride[VPX_PLANE_Y];
-	mbew_num_t ustride = img->stride[VPX_PLANE_U];
-	mbew_num_t vstride = img->stride[VPX_PLANE_V];
+	ptrdiff_t ystride = img->stride[VPX_PLANE_Y];
+	ptrdiff_t ustride = img->stride[VPX_PLANE_U];
+	ptrdiff_t vstride = img->stride[VPX_PLANE_V];
 
-	unsigned long int i;
-	unsigned long int j;
+	size_t i;
+	size_t j;
 
 	for(i = 0; i < height; ++i) {
 		for(j = 0; j < width; ++j) {
@@ -39,11 +50,11 @@ void mbew_format_rgb(vpx_image_t* img, uint8_t* dest) {
 			int g;
 			int b;
 
-			uint8_t* point = dest + 4 * ((i * width) + j);
+			uint8_t* point = dest + 4 * ((i * (size_t)width) + j);
 
-			int t_y = y[((i * ystride) + j)];
-			int t_u = u[(((i / 2) * ustride) + (j / 2))];
-			int t_v = v[(((i / 2) * vstride) + (j / 2))];
+			int t_y = y[(ptrdiff_t)i * ystride + (ptrdiff_t)j];
+			int t_u = u[(ptrdiff_t)(i / 2) * ustride + (ptrdiff_t)(j / 2)];
+			int t_v = v[(ptrdiff_t)(i / 2) * vstride + (ptrdiff_t)(j / 2)];
 
 			t_y = t_y < 16 ? 16 : t_y;
 
@@ -51,11 +62,10 @@ void mbew_format_rgb(vpx_image_t* img, uint8_t* dest) {
 			g = (298 * (t_y - 16) - 100 * (t_u - 128) - 208 * (t_v - 128) + 128) >> 8;
 			b = (298 * (t_y - 16) + 516 * (t_u - 128) + 128) >> 8;
 
-			point[2] = r > 255 ? 255 : r < 0 ? 0 : r;
-			point[1] = g > 255 ? 255 : g < 0 ? 0 : g;
-			point[0] = b > 255 ? 255 : b < 0 ? 0 : b;
-			point[3] = ~0;
+			point[2] = (uint8_t)(r > 255 ? 255 : r < 0 ? 0 : r);
+			point[1] = (uint8_t)(g > 255 ? 255 : g < 0 ? 0 : g);
+			point[0] = (uint8_t)(b > 255 ? 255 : b < 0 ? 0 : b);
+			point[3] = UINT8_MAX;
 		}
 	}
 }
-

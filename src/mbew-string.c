@@ -5,9 +5,10 @@ typedef struct _mbew_string_t {
 	const char* value[];
 } mbew_string_t;
 
-static mbew_string_t MBEW_STRING_SOURCE = { 2, {
+static mbew_string_t MBEW_STRING_SOURCE = { 3, {
 	"SOURCE_FILE",
-	"SOURCE_MEMORY"
+	"SOURCE_MEMORY",
+	"SOURCE_WRITE_FILE"
 }};
 
 static mbew_string_t MBEW_STRING_STATUS = { 29, {
@@ -100,4 +101,3 @@ const char* mbew_string(mbew_num_t e) {
 		}
 	}
 }
-

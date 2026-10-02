@@ -2,6 +2,7 @@
 #define MBEW_H 1
 
 #include <stdint.h>
+#include <stddef.h>
 
 #if defined(_MSC_VER)
 	#define MBEW_API
@@ -10,7 +11,7 @@
 	#define MBEW_API
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -59,7 +60,11 @@ typedef enum _mbew_source_t {
 
 	/* Reads a WebM file from a buffer of memory. Two arguments are passed to mbew_create(): a
 	 * void* pointer to the memory location and a size_t argument indicating its size. */
-	MBEW_ENUM(SOURCE, MEMORY, 0x01)
+	MBEW_ENUM(SOURCE, MEMORY, 0x01),
+
+	/* Creates a video-only WebM file. mbew_create() receives a path followed by a
+	 * pointer to mbew_write_config_t. */
+	MBEW_ENUM(SOURCE, WRITE_FILE, 0x02)
 
 	/* MBEW_ENUM(SOURCE, MMAP, 0x02) */
 } mbew_source_t;
@@ -80,6 +85,10 @@ typedef enum _mbew_status_t {
 	MBEW_ENUM(STATUS, NOT_IMPLEMENTED, MBEW_STATUS_ID | 0x01),
 	MBEW_ENUM(STATUS, NULL_CONTEXT, MBEW_STATUS_ID | 0x02),
 	MBEW_ENUM(STATUS, ITERATE_FLAGS, MBEW_STATUS_ID | 0x03),
+	MBEW_ENUM(STATUS, WRITE_INVALID, MBEW_STATUS_ID | 0x80),
+	MBEW_ENUM(STATUS, WRITE_IO, MBEW_STATUS_ID | 0x81),
+	MBEW_ENUM(STATUS, VPX_CODEC_ENC_INIT, MBEW_STATUS_ID | 0x82),
+	MBEW_ENUM(STATUS, VPX_CODEC_ENCODE, MBEW_STATUS_ID | 0x83),
 
 	MBEW_ENUM_STATUS(SOURCE, FILE, 0x00),
 	MBEW_ENUM_STATUS(SOURCE, MEMORY, 0x01),
@@ -176,6 +185,14 @@ typedef enum _mbew_codec_t {
 	MBEW_ENUM(CODEC, OPUS, 0x03)
 } mbew_codec_t;
 
+/* Fixed-rate, video-only writer settings. Width and height must be non-zero,
+ * even pixel dimensions. The initial writer always encodes VP8. */
+typedef struct _mbew_write_config_t {
+	mbew_num_t width;
+	mbew_num_t height;
+	mbew_num_t rate;
+} mbew_write_config_t;
+
 /* The #mbew_iterate_t values are used to control the behavior of the mbew_iterate() function. Some
  * of the values are mutually-exclusive; see the specific comments for additional details. */
 typedef enum _mbew_iterate_t {
@@ -230,6 +247,14 @@ typedef union _mbew_propval_t {
  * as simply relying on the #mbew_t context itself to be non-NULL is not sufficient. */
 MBEW_API mbew_t mbew_create(mbew_source_t src, ...);
 
+/* Encodes one RGBA8 frame. stride is the number of bytes between adjacent
+ * source rows; pass width * 4 for tightly packed pixels. */
+MBEW_API mbew_bool_t mbew_write_frame(mbew_t m, const void* rgba, size_t stride);
+
+/* Flushes the encoder and finalizes the output file. It is safe to call this
+ * more than once. mbew_destroy() finalizes an unfinished writer automatically. */
+MBEW_API mbew_bool_t mbew_write_finish(mbew_t m);
+
 /* Destroys a previously created context. An #mbew_t context that is currently being iterated over
  * (which you determine using mbew_iter_active()) cannot be destroyed until it either finishes it
  * iteration and or is manually reset via mbew_reset(). */
@@ -267,7 +292,7 @@ MBEW_API mbew_num_t mbew_video_frame_size(mbew_t m, mbew_num_t flags);
  *
  * For more quick examples of the iteration API in action, use the following link:
  *
- *		http://github.com/cubicool/mbew
+ * http://github.com/cubicool/mbew
  *
  * NOTE: An #mbew_t context can only manage a single iteration per stream; it is NOT (currently)
  * safe to call mbew_iterate() simultaneously using the same #mbew_t context. */
@@ -309,9 +334,8 @@ MBEW_API mbew_num_t mbew_iter_pcm16_size(mbew_t m);
 /* Returns descriptive information regarding the enum instance passed in as $e. */
 MBEW_API const char* mbew_string(mbew_num_t e);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
 #endif
-
