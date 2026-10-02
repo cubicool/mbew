@@ -1,5 +1,6 @@
 #include "mbew.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 
 int main(int argc, char** argv) {
@@ -18,8 +19,8 @@ int main(int argc, char** argv) {
 
 		printf("Opened context for '%s'\n", argv[1]);
 
-		printf(" > Duration: %luns\n", mbew_property(m, MBEW_PROPERTY_DURATION).ns);
-		printf(" > Scale: %luns\n", mbew_property(m, MBEW_PROPERTY_SCALE).ns);
+		printf(" > Duration: %" PRIu64 "ns\n", mbew_property(m, MBEW_PROPERTY_DURATION).ns);
+		printf(" > Scale: %" PRIu64 "ns\n", mbew_property(m, MBEW_PROPERTY_SCALE).ns);
 		printf(" > Tracks: %d\n", mbew_property(m, MBEW_PROPERTY_TRACKS).num);
 
 		b = mbew_property(m, MBEW_PROPERTY_VIDEO).b;

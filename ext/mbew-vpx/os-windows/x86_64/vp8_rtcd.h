@@ -55,6 +55,15 @@ void vp8_bilinear_predict8x8_sse2(unsigned char *src_ptr, int src_pixels_per_lin
 void vp8_bilinear_predict8x8_ssse3(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
 RTCD_EXTERN void (*vp8_bilinear_predict8x8)(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
 
+int vp8_block_error_c(short *coeff, short *dqcoeff);
+int vp8_block_error_sse2(short *coeff, short *dqcoeff);
+#define vp8_block_error vp8_block_error_sse2
+
+void vp8_copy32xn_c(const unsigned char *src_ptr, int src_stride, unsigned char *dst_ptr, int dst_stride, int height);
+void vp8_copy32xn_sse2(const unsigned char *src_ptr, int src_stride, unsigned char *dst_ptr, int dst_stride, int height);
+void vp8_copy32xn_sse3(const unsigned char *src_ptr, int src_stride, unsigned char *dst_ptr, int dst_stride, int height);
+RTCD_EXTERN void (*vp8_copy32xn)(const unsigned char *src_ptr, int src_stride, unsigned char *dst_ptr, int dst_stride, int height);
+
 void vp8_copy_mem16x16_c(unsigned char *src, int src_stride, unsigned char *dst, int dst_stride);
 void vp8_copy_mem16x16_sse2(unsigned char *src, int src_stride, unsigned char *dst, int dst_stride);
 #define vp8_copy_mem16x16 vp8_copy_mem16x16_sse2
@@ -71,6 +80,14 @@ void vp8_dc_only_idct_add_c(short input_dc, unsigned char *pred_ptr, int pred_st
 void vp8_dc_only_idct_add_mmx(short input_dc, unsigned char *pred_ptr, int pred_stride, unsigned char *dst_ptr, int dst_stride);
 #define vp8_dc_only_idct_add vp8_dc_only_idct_add_mmx
 
+int vp8_denoiser_filter_c(unsigned char *mc_running_avg_y, int mc_avg_y_stride, unsigned char *running_avg_y, int avg_y_stride, unsigned char *sig, int sig_stride, unsigned int motion_magnitude, int increase_denoising);
+int vp8_denoiser_filter_sse2(unsigned char *mc_running_avg_y, int mc_avg_y_stride, unsigned char *running_avg_y, int avg_y_stride, unsigned char *sig, int sig_stride, unsigned int motion_magnitude, int increase_denoising);
+#define vp8_denoiser_filter vp8_denoiser_filter_sse2
+
+int vp8_denoiser_filter_uv_c(unsigned char *mc_running_avg, int mc_avg_stride, unsigned char *running_avg, int avg_stride, unsigned char *sig, int sig_stride, unsigned int motion_magnitude, int increase_denoising);
+int vp8_denoiser_filter_uv_sse2(unsigned char *mc_running_avg, int mc_avg_stride, unsigned char *running_avg, int avg_stride, unsigned char *sig, int sig_stride, unsigned int motion_magnitude, int increase_denoising);
+#define vp8_denoiser_filter_uv vp8_denoiser_filter_uv_sse2
+
 void vp8_dequant_idct_add_c(short *input, short *dq, unsigned char *dest, int stride);
 void vp8_dequant_idct_add_mmx(short *input, short *dq, unsigned char *dest, int stride);
 #define vp8_dequant_idct_add vp8_dequant_idct_add_mmx
@@ -86,6 +103,15 @@ void vp8_dequant_idct_add_y_block_sse2(short *q, short *dq, unsigned char *dst, 
 void vp8_dequantize_b_c(struct blockd*, short *DQC);
 void vp8_dequantize_b_mmx(struct blockd*, short *DQC);
 #define vp8_dequantize_b vp8_dequantize_b_mmx
+
+int vp8_diamond_search_sad_c(struct macroblock *x, struct block *b, struct blockd *d, union int_mv *ref_mv, union int_mv *best_mv, int search_param, int sad_per_bit, int *num00, struct variance_vtable *fn_ptr, int *mvcost[2], union int_mv *center_mv);
+int vp8_diamond_search_sadx4(struct macroblock *x, struct block *b, struct blockd *d, union int_mv *ref_mv, union int_mv *best_mv, int search_param, int sad_per_bit, int *num00, struct variance_vtable *fn_ptr, int *mvcost[2], union int_mv *center_mv);
+#define vp8_diamond_search_sad vp8_diamond_search_sadx4
+
+void vp8_fast_quantize_b_c(struct block *, struct blockd *);
+void vp8_fast_quantize_b_sse2(struct block *, struct blockd *);
+void vp8_fast_quantize_b_ssse3(struct block *, struct blockd *);
+RTCD_EXTERN void (*vp8_fast_quantize_b)(struct block *, struct blockd *);
 
 void vp8_filter_by_weight16x16_c(unsigned char *src, int src_stride, unsigned char *dst, int dst_stride, int src_weight);
 void vp8_filter_by_weight16x16_sse2(unsigned char *src, int src_stride, unsigned char *dst, int dst_stride, int src_weight);
@@ -130,6 +156,31 @@ void vp8_loop_filter_simple_vertical_edge_c(unsigned char *y_ptr, int y_stride, 
 void vp8_loop_filter_simple_vertical_edge_sse2(unsigned char *y_ptr, int y_stride, const unsigned char *blimit);
 #define vp8_loop_filter_simple_mbv vp8_loop_filter_simple_vertical_edge_sse2
 
+int vp8_mbblock_error_c(struct macroblock *mb, int dc);
+int vp8_mbblock_error_sse2(struct macroblock *mb, int dc);
+#define vp8_mbblock_error vp8_mbblock_error_sse2
+
+int vp8_mbuverror_c(struct macroblock *mb);
+int vp8_mbuverror_sse2(struct macroblock *mb);
+#define vp8_mbuverror vp8_mbuverror_sse2
+
+int vp8_refining_search_sad_c(struct macroblock *x, struct block *b, struct blockd *d, union int_mv *ref_mv, int error_per_bit, int search_range, struct variance_vtable *fn_ptr, int *mvcost[2], union int_mv *center_mv);
+int vp8_refining_search_sadx4(struct macroblock *x, struct block *b, struct blockd *d, union int_mv *ref_mv, int error_per_bit, int search_range, struct variance_vtable *fn_ptr, int *mvcost[2], union int_mv *center_mv);
+#define vp8_refining_search_sad vp8_refining_search_sadx4
+
+void vp8_regular_quantize_b_c(struct block *, struct blockd *);
+void vp8_regular_quantize_b_sse2(struct block *, struct blockd *);
+void vp8_regular_quantize_b_sse4_1(struct block *, struct blockd *);
+RTCD_EXTERN void (*vp8_regular_quantize_b)(struct block *, struct blockd *);
+
+void vp8_short_fdct4x4_c(short *input, short *output, int pitch);
+void vp8_short_fdct4x4_sse2(short *input, short *output, int pitch);
+#define vp8_short_fdct4x4 vp8_short_fdct4x4_sse2
+
+void vp8_short_fdct8x4_c(short *input, short *output, int pitch);
+void vp8_short_fdct8x4_sse2(short *input, short *output, int pitch);
+#define vp8_short_fdct8x4 vp8_short_fdct8x4_sse2
+
 void vp8_short_idct4x4llm_c(short *input, unsigned char *pred_ptr, int pred_stride, unsigned char *dst_ptr, int dst_stride);
 void vp8_short_idct4x4llm_mmx(short *input, unsigned char *pred_ptr, int pred_stride, unsigned char *dst_ptr, int dst_stride);
 #define vp8_short_idct4x4llm vp8_short_idct4x4llm_mmx
@@ -140,6 +191,10 @@ void vp8_short_inv_walsh4x4_sse2(short *input, short *mb_dqcoeff);
 
 void vp8_short_inv_walsh4x4_1_c(short *input, short *mb_dqcoeff);
 #define vp8_short_inv_walsh4x4_1 vp8_short_inv_walsh4x4_1_c
+
+void vp8_short_walsh4x4_c(short *input, short *output, int pitch);
+void vp8_short_walsh4x4_sse2(short *input, short *output, int pitch);
+#define vp8_short_walsh4x4 vp8_short_walsh4x4_sse2
 
 void vp8_sixtap_predict16x16_c(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
 void vp8_sixtap_predict16x16_sse2(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
@@ -161,6 +216,10 @@ void vp8_sixtap_predict8x8_sse2(unsigned char *src_ptr, int src_pixels_per_line,
 void vp8_sixtap_predict8x8_ssse3(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
 RTCD_EXTERN void (*vp8_sixtap_predict8x8)(unsigned char *src_ptr, int src_pixels_per_line, int xoffset, int yoffset, unsigned char *dst_ptr, int dst_pitch);
 
+void vp8_temporal_filter_apply_c(unsigned char *frame1, unsigned int stride, unsigned char *frame2, unsigned int block_size, int strength, int filter_weight, unsigned int *accumulator, unsigned short *count);
+void vp8_temporal_filter_apply_sse2(unsigned char *frame1, unsigned int stride, unsigned char *frame2, unsigned int block_size, int strength, int filter_weight, unsigned int *accumulator, unsigned short *count);
+#define vp8_temporal_filter_apply vp8_temporal_filter_apply_sse2
+
 void vp8_rtcd(void);
 
 #ifdef RTCD_C
@@ -175,6 +234,12 @@ static void setup_rtcd_internal(void)
     if (flags & HAS_SSSE3) vp8_bilinear_predict16x16 = vp8_bilinear_predict16x16_ssse3;
     vp8_bilinear_predict8x8 = vp8_bilinear_predict8x8_sse2;
     if (flags & HAS_SSSE3) vp8_bilinear_predict8x8 = vp8_bilinear_predict8x8_ssse3;
+    vp8_copy32xn = vp8_copy32xn_sse2;
+    if (flags & HAS_SSE3) vp8_copy32xn = vp8_copy32xn_sse3;
+    vp8_fast_quantize_b = vp8_fast_quantize_b_sse2;
+    if (flags & HAS_SSSE3) vp8_fast_quantize_b = vp8_fast_quantize_b_ssse3;
+    vp8_regular_quantize_b = vp8_regular_quantize_b_sse2;
+    if (flags & HAS_SSE4_1) vp8_regular_quantize_b = vp8_regular_quantize_b_sse4_1;
     vp8_sixtap_predict16x16 = vp8_sixtap_predict16x16_sse2;
     if (flags & HAS_SSSE3) vp8_sixtap_predict16x16 = vp8_sixtap_predict16x16_ssse3;
     vp8_sixtap_predict4x4 = vp8_sixtap_predict4x4_mmx;
